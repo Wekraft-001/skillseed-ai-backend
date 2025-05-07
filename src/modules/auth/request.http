@@ -1,0 +1,21 @@
+## Creating a student
+
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+    "firstName":"Naruto",
+    "lastName":"Uzumaki",
+    "email":"naruto@gmail.com",
+    "password":"Naruto0511"
+}
+
+### Signin a student
+
+POST http://localhost:3000/api/auth/signin
+Content-Type: application/json
+
+{
+    "firstName":"Naruto",
+    "password":"Naruto0511"
+}

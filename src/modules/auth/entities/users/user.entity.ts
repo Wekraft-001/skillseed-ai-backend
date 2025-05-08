@@ -1,7 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { UserRole } from "src/common/interfaces";
 
 @Entity()
-export class Student {
+export class User {
     @PrimaryGeneratedColumn()
     id: number;
 
@@ -11,7 +12,14 @@ export class Student {
     @Column()
     lastName: string;
 
-    @Column()
+    @Column({
+        type: 'enum',
+        enum: UserRole,
+        default: UserRole.STUDENT,
+    })
+    role: UserRole;
+
+    @Column({unique: true})
     email: string;
 
     @Column()

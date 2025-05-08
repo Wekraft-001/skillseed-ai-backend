@@ -6,7 +6,7 @@ import { JwtModule } from "@nestjs/jwt";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { PassportModule } from "@nestjs/passport";
-import { Student } from "./entities/students";
+import { User } from "./entities/users";
 import { LoggerModule } from "src/common/logger/logger.module";
 
 @Module({
@@ -20,7 +20,7 @@ import { LoggerModule } from "src/common/logger/logger.module";
             }),
             inject: [ConfigService],
         }),
-        TypeOrmModule.forFeature([Student]),
+        TypeOrmModule.forFeature([User]),
         LoggerModule
     ],
     controllers: [AuthController],

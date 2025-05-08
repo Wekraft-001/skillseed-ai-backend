@@ -4,7 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './modules/auth/auth.module';
-import { Student } from './modules/auth/entities/students';
+import { User } from './modules/auth/entities/users';
 import { LoggerModule } from './common/logger/logger.module';
 
 @Module({
@@ -21,7 +21,7 @@ import { LoggerModule } from './common/logger/logger.module';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      entities: [Student],
+      entities: [User],
       synchronize: true,
       autoLoadEntities: true,
     }),

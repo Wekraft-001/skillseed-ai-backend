@@ -4,9 +4,10 @@ POST http://localhost:3000/api/auth/register
 Content-Type: application/json
 
 {
-    "firstName":"Naruto",
-    "lastName":"Uzumaki",
-    "email":"naruto@gmail.com",
+    "firstName":"Manful",
+    "lastName":"Roland",
+    "email":"lolendo@gmail.com",
+    "role":"student",
     "password":"Naruto0511"
 }
 

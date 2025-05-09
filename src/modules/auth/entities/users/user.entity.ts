@@ -19,6 +19,9 @@ export class User {
     })
     role: UserRole;
 
+    @Column({nullable: true})
+    age: number;
+
     @Column({unique: true})
     email: string;
 

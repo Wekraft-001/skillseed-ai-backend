@@ -1,4 +1,4 @@
-import { IsString, IsEmail, MinLength } from "class-validator";
+import { IsString, IsEmail, MinLength, IsNumber } from "class-validator";
 import { UserRole } from "src/common/interfaces";
 
 export class CreateUserDto {
@@ -10,6 +10,9 @@ export class CreateUserDto {
 
     @IsEmail()
     email: string;
+
+    @IsNumber()
+    age: number;
 
     @IsString()
     role?: UserRole;

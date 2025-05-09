@@ -1,0 +1,13 @@
+### Get my profile
+
+GET http://localhost:3000/api/users/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoibG9sZW5kb0BnbWFpbC5jb20iLCJpYXQiOjE3NDY3OTIzOTksImV4cCI6MTc0Njg3ODc5OX0.G6Zo7efpokOMHeH_1RVGOwZaYw9qzjm7pAxn5CRYVqg
+
+### Get all users
+
+GET http://localhost:3000/api/users/all 
+
+
+### Get the quiz generated
+
+GET http://localhost:3000/api/users/quiz

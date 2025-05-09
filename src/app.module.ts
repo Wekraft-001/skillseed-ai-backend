@@ -6,6 +6,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './modules/auth/auth.module';
 import { User } from './modules/auth/entities/users';
 import { LoggerModule } from './common/logger/logger.module';
+import { UserModule } from './modules/users/user.module';
+import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -25,7 +27,9 @@ import { LoggerModule } from './common/logger/logger.module';
       synchronize: true,
       autoLoadEntities: true,
     }),
-    AuthModule
+    AuthModule,
+    UserModule,
+    AiModule
   ],
   controllers: [AppController],
   providers: [AppService],

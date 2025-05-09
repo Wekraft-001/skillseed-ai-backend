@@ -15,4 +15,6 @@ export class AuthController {
     sigin(@Body() body: { firstName: string; password: string }) {
         return this.authService.signin(body.firstName, body.password);
     }
+
+    
 }

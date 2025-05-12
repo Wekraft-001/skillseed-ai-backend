@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Req, Post, Body } from '@nestjs/common';
+import { Controller, Get, UseGuards, Req, Post, Body, BadRequestException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AiService } from '../ai/ai.service';
 import { UserService } from './user.service';
@@ -16,9 +16,11 @@ export class UserController {
     return req.user;
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get('quiz')
   async getQuiz(@Req() req) {
-    const age = req.user.age || 10;
+    const age = req.user?.age;
+    if(!age) throw new BadRequestException('Age is missing from user token');
     return this.aiService.generateCareerQuiz(age);
   }
 

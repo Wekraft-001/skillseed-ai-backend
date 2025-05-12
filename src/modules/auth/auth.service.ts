@@ -45,13 +45,13 @@ export class AuthService {
         return this.login(User);
     }
 
-    async login(user: { id: number; email: string }) {
-        const payload = { sub: user.id, email: user.email };
+    async login(user: { id: number; firstName: string, age: number, email: string }) {
+        const payload = { sub: user.id, firstName: user.firstName, age: user.age, email: user.email };
         this.logger.setContext('AuthService');
         this.logger.log(`JWT issued for user ${user.email}`);
 
         return {
-          access_token: this.jwtService.sign(payload),
+          access_token: this.jwtService.sign(payload, {expiresIn: '1d'}),
         };
     }
 

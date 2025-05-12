@@ -1,18 +1,25 @@
-import { Injectable } from "@nestjs/common";
-import OpenAI from "openai";
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import OpenAI from 'openai';
+import { LoggerService } from 'src/common/logger/logger.service';
 
 @Injectable()
 export class AiService {
     private openai: OpenAI;
 
-    constructor() {
-        this.openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
-        })
-    }
+  constructor(
+    private configService: ConfigService,
+    private readonly logger: LoggerService
+  ) {
+    this.openai = new OpenAI({
+      apiKey: this.configService.get<string>('OPEN_API_KEY'),
+      maxRetries: 2,
+    });
+  }
 
-    async generateCareerQuiz(age: number): Promise<string> {
-        const prompt = `Create 5 discovery questions for a child aged ${age} that assess: 
+  async generateCareerQuiz(age: number): Promise<string> {
+    try {
+      const prompt = `Create 5 discovery questions for a child aged ${age} that assess: 
         - Preferences (hands-on, reading, building, helping)
         - Emotional and cognitive traits
         - Self-perception ("I like solving puzzles", etc.)
@@ -20,15 +27,25 @@ export class AiService {
         Keep questions simple and friendly.
         `;
 
-        const response = await this.openai.chat.completions.create({
-            model: 'gpt4',
-            messages: [{ role: 'user', content: prompt }],
-        });
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+      });
 
-        return response.choices[0].message.content || '';
+      return response.choices[0].message.content || '';
+    } catch (error) {
+        this.logger.error('OpenAI API Error: ', error);
+
+        if(error.status === 429) {
+            throw new Error('OpenAI API  rate limit exceeded. Please check your account status.')
+        }
+
+        throw error;
     }
+  }
 
-    async analyzeAnswers(answers: string[]): Promise<any> {
+  async analyzeAnswers(answers: string[]): Promise<any> {
+    try {
         const prompt = `
         Given the following answers from a child: 
         ${answers.join('\n')}
@@ -41,12 +58,16 @@ export class AiService {
         - Recommended Learning Style(Visual, Kinesthetic, Auditory, etc.)
         `;
 
-        const response = await this.openai.chat.completions.create({
-            model: 'gpt-4',
-            messages: [{ role: 'user', content: prompt }],
-        });
+    const response = await this.openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: prompt }],
+    });
 
-        return response.choices[0].message.content;
+    return response.choices[0].message.content;
         
+    } catch (error) {
+        this.logger.error('OpenAI API Error: ', error);
+        throw error;
     }
+  }
 }

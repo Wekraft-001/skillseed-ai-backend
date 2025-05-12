@@ -1,9 +1,10 @@
 ### Get my profile
 
 GET http://localhost:3000/api/users/me
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoibG9sZW5kb0BnbWFpbC5jb20iLCJpYXQiOjE3NDY3OTIzOTksImV4cCI6MTc0Njg3ODc5OX0.G6Zo7efpokOMHeH_1RVGOwZaYw9qzjm7pAxn5CRYVqg
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImZpcnN0TmFtZSI6Ik5hcnV0byIsImFnZSI6MTAsImVtYWlsIjoibmFydXRvQGdtYWlsLmNvbSIsImlhdCI6MTc0NzA1NjUxNSwiZXhwIjoxNzQ3MDU3NDE1fQ.14lDGtEDuKtA76HpkWEBULiq84p50sTDQvoeYoMfRCQ
 
-### Get all users
+
+### Get all the users
 
 GET http://localhost:3000/api/users/all 
 
@@ -11,3 +12,9 @@ GET http://localhost:3000/api/users/all
 ### Get the quiz generated
 
 GET http://localhost:3000/api/users/quiz
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImZpcnN0TmFtZSI6Ik5hcnV0byIsImFnZSI6MTAsImVtYWlsIjoibmFydXRvQGdtYWlsLmNvbSIsImlhdCI6MTc0NzA1NjUxNSwiZXhwIjoxNzQ3MDU3NDE1fQ.14lDGtEDuKtA76HpkWEBULiq84p50sTDQvoeYoMfRCQ
+
+### Check available gpt models
+
+GET https://api.openai.com/v1/models
+Authorization: Bearer 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

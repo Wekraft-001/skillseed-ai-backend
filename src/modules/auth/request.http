@@ -1,24 +1,13 @@
 ## Creating a student
 
-# POST http://localhost:3000/api/auth/register
-# Content-Type: application/json
-
-# {
-#     "firstName":"Manful",
-#     "lastName":"Roland",
-#     "email":"lolendo@gmail.com",
-#     "role":"student",
-#     "password":"Naruto0511"
-# }
-
 POST http://localhost:3000/api/auth/register
 Content-Type: application/json
 
 {
-    "firstName":"Naruto",
-    "lastName":"Uzumaki",
-    "email":"naruto@gmail.com",
-    "age":10,
+    "firstName":"<script>Shino</script>",
+    "lastName":"Aburame",
+    "email":"SHIno@GMAIL.COM",
+    "age":9,
     "role":"student",
     "password":"Naruto0511"
 }
@@ -29,6 +18,6 @@ POST http://localhost:3000/api/auth/signin
 Content-Type: application/json
 
 {
-    "firstName":"Naruto",
+    "firstName":"Sarutobi",
     "password":"Naruto0511"
 }

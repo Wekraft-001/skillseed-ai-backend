@@ -1,7 +1,21 @@
-import { Controller, Get, UseGuards, Req, Post, Body, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  UseGuards,
+  Req,
+  Post,
+  Body,
+  BadRequestException,
+  Param,
+  ParseIntPipe,
+  ValidationPipe,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AiService } from '../ai/ai.service';
 import { UserService } from './user.service';
+import { SubmitAnswersDto } from 'src/common/interfaces';
+import { CurrentUser } from 'src/common/decorators';
+import { User } from '../entities';
 
 @Controller('users')
 export class UserController {
@@ -12,16 +26,14 @@ export class UserController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get('me')
-  getProfile(@Req() req) {
-    return req.user;
+  getProfile(@CurrentUser() user) {
+    return user;
   }
 
   @UseGuards(AuthGuard('jwt'))
   @Get('quiz')
   async getQuiz(@Req() req) {
-    const age = req.user?.age;
-    if(!age) throw new BadRequestException('Age is missing from user token');
-    return this.aiService.generateCareerQuiz(age);
+    return this.aiService.generateCareerQuiz(req.user);
   }
 
   @Get('all')
@@ -29,8 +41,34 @@ export class UserController {
     return this.userServices.findAllUsers();
   }
 
-  @Post('profile')
-  async generateProfileOutCome(@Body('answers') answers: string[]) {
-    return this.aiService.analyzeAnswers(answers);
+  @Get('quiz/all')
+  async getAllQuizzes() {
+    return this.aiService.getAllQuizzes();
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('quiz/:id/answers')
+  async sumbitQuizAnswers(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() answersDto: SubmitAnswersDto,
+    @CurrentUser() user: User,
+  ) {
+    if (id !== answersDto.quizId) {
+      throw new BadRequestException('Quiz ID does not match');
+    }
+    return this.aiService.submitAnswers(answersDto, user.id);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('quiz/:id/generate-profile')
+  async generateProfileOutCome(
+    @Param('id', ParseIntPipe) quizId: number,
+    // @Body() dto: SubmitAnswersDto,
+    @CurrentUser() user: User,
+  ) {
+    const dto = new SubmitAnswersDto();
+    dto.quizId = quizId;
+
+    return this.aiService.generateProfileOutcome(dto, user.id);
   }
 }

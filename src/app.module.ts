@@ -4,10 +4,11 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './modules/auth/auth.module';
-import { User } from './modules/auth/entities/users';
+import { Badge, EducationalContent, User } from './modules/entities';
 import { LoggerModule } from './common/logger/logger.module';
 import { UserModule } from './modules/users/user.module';
 import { AiModule } from './modules/ai/ai.module';
+import { ProjectShowcase } from './modules/entities/showcase.entity';
 
 @Module({
   imports: [
@@ -23,7 +24,7 @@ import { AiModule } from './modules/ai/ai.module';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      entities: [User],
+      entities: [User, Badge, ProjectShowcase, EducationalContent],
       synchronize: true,
       autoLoadEntities: true,
     }),

@@ -4,12 +4,12 @@ POST http://localhost:3000/api/auth/register
 Content-Type: application/json
 
 {
-    "firstName":"<script>Shino</script>",
-    "lastName":"Aburame",
-    "email":"SHIno@GMAIL.COM",
-    "age":9,
+    "firstName":"Staphord",
+    "lastName":"Nkumbuye",
+    "email":"staphord@gmail.test",
+    "age":10,
     "role":"student",
-    "password":"Naruto0511"
+    "password":"123456"
 }
 
 ### Signin a student
@@ -18,6 +18,6 @@ POST http://localhost:3000/api/auth/signin
 Content-Type: application/json
 
 {
-    "firstName":"Sarutobi",
-    "password":"Naruto0511"
+    "firstName":"Staphord",
+    "password":"123456"
 }

@@ -5,12 +5,13 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CareerQuiz } from '../entities/career-quiz.entity';
 import { UserModule } from '../users/user.module';
+import { EducationalContent } from '../entities';
 
 @Module({
   imports: [
     LoggerModule,
     ConfigModule,
-    TypeOrmModule.forFeature([CareerQuiz]),
+    TypeOrmModule.forFeature([CareerQuiz, EducationalContent]),
     forwardRef(() => UserModule),
   ],
   providers: [AiService],

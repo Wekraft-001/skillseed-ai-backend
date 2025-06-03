@@ -6,8 +6,8 @@ export class EducationalContent {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
-    videoUrl: string;
+    @Column('json', { nullable: true })
+    videoUrl: {title: string; url: string}[];
 
     @Column({type: 'jsonb', nullable: true})
     books: Array<{ title: string; author: string; level: string; theme: string }>;

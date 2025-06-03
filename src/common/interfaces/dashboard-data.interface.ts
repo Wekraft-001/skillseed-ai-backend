@@ -2,7 +2,7 @@ import { Badge, EducationalContent, User } from "src/modules/entities";
 import { ProjectShowcase } from "src/modules/entities/showcase.entity";
 
 export interface DashboardData {
-    educationalContents: EducationalContent[];
+    educationalContents?: EducationalContent[];
     badges?: Badge[];
     showcases?: ProjectShowcase[];
     students?: User[];

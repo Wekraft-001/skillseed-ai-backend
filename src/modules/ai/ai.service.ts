@@ -8,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import OpenAI from 'openai';
 import { LoggerService } from 'src/common/logger/logger.service';
 import { CareerQuiz } from '../entities/career-quiz.entity';
-import { Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { EducationalContent, User } from '../entities';
 import { SubmitAnswersDto, UserRole } from 'src/common/interfaces';
 
@@ -22,7 +22,8 @@ export class AiService {
     @InjectRepository(CareerQuiz)
     private readonly quizRepo: Repository<CareerQuiz>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
-    @InjectRepository(EducationalContent) private readonly eduContentRepo: Repository<EducationalContent>,
+    @InjectRepository(EducationalContent)
+    private readonly eduContentRepo: Repository<EducationalContent>,
   ) {
     this.openai = new OpenAI({
       apiKey: this.configService.get<string>('OPEN_API_KEY'),
@@ -157,7 +158,6 @@ export class AiService {
         throw new Error('Quiz already completed');
       }
 
-
       this.logger.log(
         `Received answers for quiz ${quizId}: ${JSON.stringify(answers)}`,
       );
@@ -232,31 +232,35 @@ export class AiService {
     }
   }
 
-  async generateEducationalContent(userId: number): Promise<EducationalContent>{
+  async generateEducationalContent(
+    userId: number,
+  ): Promise<EducationalContent> {
     try {
       const user = await this.userRepo.findOne({
-        where: {id: userId},
-        relations: ['quizzes', 'badges'],
-      })
+        where: { id: userId },
+        relations: ['quizzes'],
+      });
 
-      if (!user ) {
+      if (!user) {
         throw new NotFoundException('User not found');
       }
 
-      if(user.role !== UserRole.STUDENT){
-        throw new BadRequestException('Only students can generate educational content');
+      if (user.role !== UserRole.STUDENT) {
+        throw new BadRequestException(
+          'Only students can generate educational content',
+        );
       }
 
-      const analysis = user.quizzes.analysis;
-      if (!analysis) {
-        throw new BadRequestException('User has no completed quizzes with analysis');
+      const latestQuiz = await this.getLatestQuiz(userId);
+      if (!latestQuiz || !latestQuiz.analysis) {
+        throw new BadRequestException('No completed quiz found for this user');
       }
 
       const prompt = `Generate personalized educational content for a ${user.age}-year-old child name ${user.firstName} based on this profile: 
       personality and Interests: 
-      ${analysis}
+      ${latestQuiz.analysis}
       Recommended Activities: 
-      ${analysis.includes('Recommended activities') ? analysis.split('Recommended activities:')[1] : 'Not specified'}
+      ${latestQuiz.analysis.includes('Recommended activities') ? latestQuiz.analysis.split('Recommended activities:')[1] : 'Not specified'}
 
       Create a mix of: 
       - 2 educational videos recommendations (include YouTube links if possible)
@@ -273,31 +277,37 @@ export class AiService {
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
-        response_format: { type: "json_object"},
-        messages: [{role: 'user', content: prompt}]
+        response_format: { type: 'json_object' },
+        messages: [{ role: 'user', content: prompt }],
       });
 
-      const JsonEducationContent = JSON.parse(response.choices[0].message.content);
+      const JsonEducationContent = JSON.parse(
+        response.choices[0].message.content || '{}',
+      );
 
       const educationalContent = new EducationalContent();
       educationalContent.user = user;
-      educationalContent.videoUrl = JsonEducationContent.video[0]?.url || '';
+      educationalContent.videoUrl = JsonEducationContent.video;
       educationalContent.books = JsonEducationContent.books || [];
       educationalContent.games = JsonEducationContent.games || [];
 
       return await this.eduContentRepo.save(educationalContent);
-    
-
-    } catch(error) {
+    } catch (error) {
       this.logger.error('Error generating educational content: ', error);
       throw error;
     }
   }
 
-  private async getLatestQuiz(userId: number): Promise<CareerQuiz> {
-    return await this.quizRepo.findOne({
-      where: { user: {id: userId}},
-      analysis: {$ne: null},
-    })
+  private async getLatestQuiz(userId: number): Promise<CareerQuiz | null> {
+    try {
+      return await this.quizRepo.findOne({
+        where: { user: { id: userId }, analysis: Not(IsNull()) },
+        order: { createdAt: 'DESC' },
+      });
+    } catch (error) {
+      this.logger.error('Error fetching latest quiz: ', error);
+      throw new error;
+      
+    }
   }
 }

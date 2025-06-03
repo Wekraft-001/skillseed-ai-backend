@@ -1,7 +1,7 @@
 ### Get my profile
 
 GET http://localhost:3000/api/users/me
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImZpcnN0TmFtZSI6IlN0YXBob3JkIiwiYWdlIjoxMCwiZW1haWwiOiJzdGFwaG9yZEBnbWFpbC50ZXN0IiwiaWF0IjoxNzQ4NjI4OTQ5LCJleHAiOjE3NDg3MTUzNDl9.Y6gOHdelaqLZW5mK9Q4-U71aiOUsUdi3EeL4r-EUA8Q
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImZpcnN0TmFtZSI6IlN0YXBob3JkIiwiYWdlIjoxMCwiZW1haWwiOiJzdGFwaG9yZEBnbWFpbC50ZXN0IiwiaWF0IjoxNzQ4OTY1MTEyLCJleHAiOjE3NDkwNTE1MTJ9.WtM6CK-fjtguL-UgqbDP_zSAa1_-VjhJs769OWz9YZA
 
 
 ### Get all the users
@@ -29,7 +29,7 @@ GET http://localhost:3000/api/users/quiz/all
 ### Get the quiz generated
 
 GET http://localhost:3000/api/users/quiz
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImZpcnN0TmFtZSI6IlN0YXBob3JkIiwiYWdlIjoxMCwiZW1haWwiOiJzdGFwaG9yZEBnbWFpbC50ZXN0IiwiaWF0IjoxNzQ4NjI4OTQ5LCJleHAiOjE3NDg3MTUzNDl9.Y6gOHdelaqLZW5mK9Q4-U71aiOUsUdi3EeL4r-EUA8Q
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImZpcnN0TmFtZSI6IlN0YXBob3JkIiwiYWdlIjoxMCwiZW1haWwiOiJzdGFwaG9yZEBnbWFpbC50ZXN0IiwiaWF0IjoxNzQ4OTY1MTEyLCJleHAiOjE3NDkwNTE1MTJ9.WtM6CK-fjtguL-UgqbDP_zSAa1_-VjhJs769OWz9YZA
 
 
 
@@ -39,7 +39,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImZpcnN0T
 
 POST http://localhost:3000/api/users/quiz/5/answers
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImZpcnN0TmFtZSI6IlN0YXBob3JkIiwiYWdlIjoxMCwiZW1haWwiOiJzdGFwaG9yZEBnbWFpbC50ZXN0IiwiaWF0IjoxNzQ4NjI4OTQ5LCJleHAiOjE3NDg3MTUzNDl9.Y6gOHdelaqLZW5mK9Q4-U71aiOUsUdi3EeL4r-EUA8Q
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImZpcnN0TmFtZSI6IlN0YXBob3JkIiwiYWdlIjoxMCwiZW1haWwiOiJzdGFwaG9yZEBnbWFpbC50ZXN0IiwiaWF0IjoxNzQ4OTY1MTEyLCJleHAiOjE3NDkwNTE1MTJ9.WtM6CK-fjtguL-UgqbDP_zSAa1_-VjhJs769OWz9YZA
 
 {
   "quizId": 5,
@@ -56,7 +56,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImZpcnN0T
 ### Generate user profile outcome based on quiz answers and analysis
 POST http://localhost:3000/api/users/quiz/5/generate-profile
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImZpcnN0TmFtZSI6IlN0YXBob3JkIiwiYWdlIjoxMCwiZW1haWwiOiJzdGFwaG9yZEBnbWFpbC50ZXN0IiwiaWF0IjoxNzQ4NjI4OTQ5LCJleHAiOjE3NDg3MTUzNDl9.Y6gOHdelaqLZW5mK9Q4-U71aiOUsUdi3EeL4r-EUA8Q
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImZpcnN0TmFtZSI6IlN0YXBob3JkIiwiYWdlIjoxMCwiZW1haWwiOiJzdGFwaG9yZEBnbWFpbC50ZXN0IiwiaWF0IjoxNzQ4OTY1MTEyLCJleHAiOjE3NDkwNTE1MTJ9.WtM6CK-fjtguL-UgqbDP_zSAa1_-VjhJs769OWz9YZA
 
 {
   "quizId": 5,
@@ -70,6 +70,11 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImZpcnN0T
 }
 
 
+### Generate educational content
+
+POST http://localhost:3000/api/users/gen-edu-content
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImZpcnN0TmFtZSI6IlN0YXBob3JkIiwiYWdlIjoxMCwiZW1haWwiOiJzdGFwaG9yZEBnbWFpbC50ZXN0IiwiaWF0IjoxNzQ4OTY1MTEyLCJleHAiOjE3NDkwNTE1MTJ9.WtM6CK-fjtguL-UgqbDP_zSAa1_-VjhJs769OWz9YZA
 
 
 

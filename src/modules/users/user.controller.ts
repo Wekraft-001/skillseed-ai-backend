@@ -13,9 +13,12 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { AiService } from '../ai/ai.service';
 import { UserService } from './user.service';
-import { SubmitAnswersDto } from 'src/common/interfaces';
+import { SubmitAnswersDto, UserRole } from 'src/common/interfaces';
 import { CurrentUser } from 'src/common/decorators';
 import { User } from '../entities';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Controller('users')
 export class UserController {
@@ -70,5 +73,21 @@ export class UserController {
     dto.quizId = quizId;
 
     return this.aiService.generateProfileOutcome(dto, user.id);
+  }
+
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Post('/gen-educ-content')
+  @Roles(UserRole.STUDENT)
+  @ApiOperation({summary: 'Generate educational content for the user'})
+  @ApiResponse({ status: 200, description: 'Educational content generated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid user role or no quiz analysis found' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async generateEducationalContent(
+    @CurrentUser() user: User,
+  ) {
+    if( user.role !== UserRole.STUDENT) {
+      throw new BadRequestException('Only students can generate educational content');
+    }
+    return await this.aiService.generateEducationalContent(user.id)
   }
 }

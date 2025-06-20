@@ -17,12 +17,13 @@ import {
 } from '@nestjs/swagger';
 import { RolesGuard } from 'src/modules/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
-import { UserRole } from 'src/common/interfaces';
+import { DashboardData, UserRole } from 'src/common/interfaces';
 import { DashboardService } from '../services/dashboard.service';
 import { JwtAuthGuard } from '../../auth/guards';
 import { CurrentUser } from 'src/common/decorators';
 import { LoggerService } from 'src/common/logger/logger.service';
 import { User } from '../../entities';
+import { ApiResponseDto } from 'src/common/interfaces/api-response.dto';
 
 @ApiTags('Dashboard')
 @ApiBearerAuth()
@@ -36,6 +37,7 @@ export class DashboardController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get dashboard data',
     description:
@@ -44,60 +46,44 @@ export class DashboardController {
   @ApiResponse({
     status: 200,
     description: 'Dashboard data retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        data: {
-          type: 'object',
-          description: 'Role-specific dashboard data',
-        },
-        summary: {
-          type: 'object',
-          description: 'Summary statistics',
-        },
-        role: {
-          type: 'string',
-          enum: [
-            UserRole.STUDENT,
-            UserRole.PARENT,
-            UserRole.MENTOR,
-            UserRole.SCHOOL_ADMIN,
-          ],
-        },
-      },
-    },
+    type: ApiResponseDto,
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized access',
+    description: 'Unauthorized access, Invalid or missing token',
   })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden access',
+    description: 'Forbidden access-User role not authorized for this operation',
   })
   @Roles(
     UserRole.STUDENT,
     UserRole.PARENT,
     UserRole.MENTOR,
     UserRole.SCHOOL_ADMIN,
+    UserRole.SUPER_ADMIN,
   )
-  async getDashboard(@CurrentUser() user: User) {
-    this.logger.log(`Dashboard request from user: ${user.id} with role: ${user.role}`);
+  async getDashboard(@CurrentUser() user: User): Promise<DashboardData> {
+    this.logger.log(
+      `Dashboard request from user: ${user.id} with role: ${user.role}`,
+    );
 
     try {
-        const dashboardData = await this.dashboardService.getDashboardData(user);
+      const dashboardData = await this.dashboardService.getDashboardData(user);
 
-    return {
+      return {
         success: true,
         message: 'Dashboard data retrieved successfully',
         timestamp: new Date().toISOString(),
-        ...dashboardData,
-    }
-        
+        data: dashboardData,
+        userId: user.id
+      };
     } catch (error) {
-        this.logger.error(`Error retrieving dashboard data for user: ${user.id}`, error);
-        throw error;
+      this.logger.error(
+        `Error retrieving dashboard data for user: ${user.id}`,
+        error,
+      );
+      throw error;
     }
-
   }
 }

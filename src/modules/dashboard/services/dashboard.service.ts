@@ -37,41 +37,48 @@ export class DashboardService {
         `Fetching dashboard data for user: ${user.id} with role: ${user.role}`,
       );
 
-      let data: DashboardData = {};
-      let summary: DashboardSummary = {};
-
+      // let data: DashboardData = {};
+      // let summary: DashboardSummary = {};
+    const [data, summary] = await (() => {
       switch (user.role) {
         case UserRole.STUDENT:
-          data = await this.getStudentDashboardData(user);
-          summary = await this.getStudentSummary(user);
-          break;
+          return Promise.all([
+            this.getStudentDashboardData(user),
+            this.getStudentSummary(user)
+          ]);
         case UserRole.MENTOR:
-          data = await this.getMentorDashboardData(user);
-          summary = await this.getMentorSummary(user);
-          break;
-
+          return Promise.all([
+            this.getMentorDashboardData(user),
+            this.getMentorSummary(user)
+          ]);
         case UserRole.PARENT:
-          data = await this.getParentDashboardData(user);
-          summary = await this.getParentSummary(user);
-          break;
-
+          return Promise.all([
+            this.getParentDashboardData(user),
+            this.getParentSummary(user)
+          ]);
         case UserRole.SCHOOL_ADMIN:
-          data = await this.getSchoolAdminDashboardData(user);
-          summary = await this.getSchoolAdminSummary(user);
-          break;
-
+          return Promise.all([
+            this.getSchoolAdminDashboardData(user),
+            this.getSchoolAdminSummary(user)
+          ]);
         case UserRole.SUPER_ADMIN:
-          data = await this.getSuperAdminDashboardData(user);
-          summary = await this.getSuperAdminSummary(user);
-
+          return Promise.all([
+            this.getSuperAdminDashboardData(user),
+            this.getSuperAdminSummary(user)
+          ]);
         default:
-          throw new ForbiddenException(
-            'Invalid user role for dashboard access',
-          );
+          throw new ForbiddenException('Invalid user role');
       }
+    })();
 
       return {
-        data,
+        data:{
+          ...data,
+          success: true,
+          message: 'Dashboard data retrieved successfully',
+          timestamp: new Date().toISOString(),
+          userId: user.id,
+        },
         summary,
         role: user.role,
       };
@@ -84,44 +91,85 @@ export class DashboardService {
     }
   }
 
-  private async getSuperAdminDashboardData(user: User): Promise <DashboardData> {
+  private async getSuperAdminDashboardData(user: User): Promise<DashboardData> {
     try {
       const [schools, students] = await Promise.all([
         this.schoolRepo.find({
-          relations: ['users']
+          relations: ['users', 'admin'],
+          where: { deletedAt: null },
+          order: { createdAt: 'DESC' },
+          select: {
+            id: true,
+            schoolName: true,
+            address: true,
+            logoUrl: true,
+            phoneNumber: true,
+            email: true,
+            createdAt: true,
+            admin: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+            superAdmin: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
         }),
         this.userRepo.find({
-          where: { role: UserRole.STUDENT},
-        })
+          where: { role: UserRole.STUDENT },
+          relations: ['school'],
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            school: {id: true, schoolName: true},
+          }
+          // deletedAt: IsNull(),
+        }),
       ]);
 
       return {
+        success: true,
+        message: 'Super admin dashboard data retrieved successfully',
+        timestamp: new Date().toISOString(),
+        userId: user.id,
         schools,
-        students
+        students,
+        analytics: {
+          totalSchools: schools.length,
+          totalStudents: students.length,
+        }
       };
-      
     } catch (error) {
-      this.logger.error(`Error fetching super admin dashboard data for user: ${user.id}`, error);
+      this.logger.error(
+        `Error fetching super admin dashboard data for user: ${user.id}`,
+        error,
+      );
       throw error;
     }
   }
 
-
-
   private async getSuperAdminSummary(user: User): Promise<DashboardSummary> {
     try {
-
-    const [schoolCount, userCount] = await Promise.all([
-      this.schoolRepo.count(),
-      this.userRepo.count(),
-    ]);
-    return {
-      totalSchools: schoolCount,
-      totalUsers: userCount
-    }
-      
+      const [schoolCount, userCount] = await Promise.all([
+        this.schoolRepo.count(),
+        this.userRepo.count(),
+      ]);
+      return {
+        totalSchools: schoolCount,
+        totalUsers: userCount,
+      };
     } catch (error) {
-      this.logger.error(`Error fetching super admin summary for user: ${user.id}`, error);
+      this.logger.error(
+        `Error fetching super admin summary for user: ${user.id}`,
+        error,
+      );
       throw error;
     }
   }
@@ -134,6 +182,10 @@ export class DashboardService {
       ]);
 
       return {
+        success: true,
+        message: 'Student dashboard data retrieved successfully',
+        timestamp: new Date().toISOString(),
+        userId: user.id,
         educationalContents,
         badges,
       };
@@ -203,6 +255,10 @@ export class DashboardService {
     ]);
 
     return {
+      success: true,
+      timestamp: new Date().toISOString(),
+      userId: user.id,
+      message: 'Mentor dashboard data retrieved successfully',
       students,
       badges,
       showcases,
@@ -234,6 +290,10 @@ export class DashboardService {
     ]);
 
     return {
+      success: true,
+      message: 'Parent dashboard data retrieved successfully',
+      timestamp: new Date().toISOString(),
+      userId: user.id,
       students: children,
       badges,
       showcases,
@@ -265,12 +325,16 @@ export class DashboardService {
       this.getSchoolAnalytics(user),
       this.getSchoolShowcases(user),
       this.schoolRepo.find({
-        where: { admin: { id: user.id}},
-        relations: ['admin']
-      })
+        where: { admin: { id: user.id } },
+        relations: ['admin'],
+      }),
     ]);
 
     return {
+      success: true,
+      message: 'School admin dashboard data retrieved successfully',
+      timestamp: new Date().toISOString(),
+      userId: user.id,
       students,
       analytics,
       showcases,
@@ -309,8 +373,8 @@ export class DashboardService {
 
   private async getCompletedQuizzesCount(user: User): Promise<number> {
     return this.quizRepo.count({
-      where: { user: { id: user.id}, completed: true}
-    })
+      where: { user: { id: user.id }, completed: true },
+    });
   }
 
   private async getChildren(user: User): Promise<User[]> {
@@ -351,5 +415,6 @@ export class DashboardService {
     return 0;
   }
   private async getChildrenShowcasesCount(user: User): Promise<any> {
-    return 0; }
+    return 0;
+  }
 }

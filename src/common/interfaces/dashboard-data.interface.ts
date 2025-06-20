@@ -11,6 +11,11 @@ export interface DashboardData {
     parents?: User[];
     analytics?: any;
     schools?: School[];
+    success: boolean;
+    message?: string;
+    timestamp?: string;
+    data?: any;
+    userId: number;
     // recentActivities?: any[];
     // notifications?: any[];
 }

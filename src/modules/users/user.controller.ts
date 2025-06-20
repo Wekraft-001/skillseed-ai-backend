@@ -48,7 +48,8 @@ export class UserController {
     return this.aiService.getAllQuizzes();
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.STUDENT)
   @Post('quiz/:id/answers')
   async sumbitQuizAnswers(
     @Param('id', ParseIntPipe) id: number,

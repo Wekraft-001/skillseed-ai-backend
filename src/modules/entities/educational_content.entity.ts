@@ -19,7 +19,7 @@ export class EducationalContent {
        skill: string;
     }>
 
-    @Column()
+    @Column({nullable: true})
     contentType: 'video' | 'book' | 'game';
 
     @ManyToOne(() => User, user => user.educationalContents)

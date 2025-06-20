@@ -1,14 +1,15 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { Badge, CareerQuiz, EducationalContent } from '../entities';
+import { Badge, CareerQuiz, EducationalContent } from '../../entities';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ProjectShowcase } from '../entities/showcase.entity';
-import { User } from '../entities';
+import { ProjectShowcase } from '../../entities/showcase.entity';
+import { User } from '../../entities';
 import { UserRole } from 'src/common/interfaces';
 import { DashboardData } from 'src/common/interfaces';
 import { DashboardSummary } from 'src/common/interfaces';
 import { LoggerService } from 'src/common/logger/logger.service';
-import { AiService } from '../ai/ai.service';
+import { AiService } from '../../ai/ai.service';
+import { School } from '../../entities/school.entity';
 
 @Injectable()
 export class DashboardService {
@@ -22,6 +23,8 @@ export class DashboardService {
     private aiService: AiService,
     @InjectRepository(CareerQuiz)
     private readonly quizRepo: Repository<CareerQuiz>,
+    @InjectRepository(School) private readonly schoolRepo: Repository<School>,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
   ) {}
 
   async getDashboardData(user: User): Promise<{
@@ -57,6 +60,10 @@ export class DashboardService {
           summary = await this.getSchoolAdminSummary(user);
           break;
 
+        case UserRole.SUPER_ADMIN:
+          data = await this.getSuperAdminDashboardData(user);
+          summary = await this.getSuperAdminSummary(user);
+
         default:
           throw new ForbiddenException(
             'Invalid user role for dashboard access',
@@ -73,6 +80,48 @@ export class DashboardService {
         `Error fetching dashboard data for user: ${user.id}`,
         error,
       );
+      throw error;
+    }
+  }
+
+  private async getSuperAdminDashboardData(user: User): Promise <DashboardData> {
+    try {
+      const [schools, students] = await Promise.all([
+        this.schoolRepo.find({
+          relations: ['users']
+        }),
+        this.userRepo.find({
+          where: { role: UserRole.STUDENT},
+        })
+      ]);
+
+      return {
+        schools,
+        students
+      };
+      
+    } catch (error) {
+      this.logger.error(`Error fetching super admin dashboard data for user: ${user.id}`, error);
+      throw error;
+    }
+  }
+
+
+
+  private async getSuperAdminSummary(user: User): Promise<DashboardSummary> {
+    try {
+
+    const [schoolCount, userCount] = await Promise.all([
+      this.schoolRepo.count(),
+      this.userRepo.count(),
+    ]);
+    return {
+      totalSchools: schoolCount,
+      totalUsers: userCount
+    }
+      
+    } catch (error) {
+      this.logger.error(`Error fetching super admin summary for user: ${user.id}`, error);
       throw error;
     }
   }
@@ -211,16 +260,21 @@ export class DashboardService {
   private async getSchoolAdminDashboardData(
     user: User,
   ): Promise<DashboardData> {
-    const [students, analytics, showcases] = await Promise.all([
+    const [students, analytics, showcases, schools] = await Promise.all([
       this.getSchoolStudents(user),
       this.getSchoolAnalytics(user),
       this.getSchoolShowcases(user),
+      this.schoolRepo.find({
+        where: { admin: { id: user.id}},
+        relations: ['admin']
+      })
     ]);
 
     return {
       students,
       analytics,
       showcases,
+      schools,
       // recentActivities: await this.getRecentActivities(user),
       // notifications: await this.getSchoolNotifications(user),
     };

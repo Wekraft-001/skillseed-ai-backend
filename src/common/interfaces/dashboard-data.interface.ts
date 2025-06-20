@@ -1,5 +1,6 @@
 import { Badge, EducationalContent, User } from "src/modules/entities";
 import { ProjectShowcase } from "src/modules/entities/showcase.entity";
+import { School } from "src/modules/entities/school.entity";
 
 export interface DashboardData {
     educationalContents?: EducationalContent[];
@@ -9,6 +10,7 @@ export interface DashboardData {
     mentors?: User[];
     parents?: User[];
     analytics?: any;
+    schools?: School[];
     // recentActivities?: any[];
     // notifications?: any[];
 }
@@ -16,6 +18,8 @@ export interface DashboardData {
 export interface DashboardSummary {
     totalStudents?: number;
     totalBadges?: number;
+    totalSchools?: number;
+    totalUsers?: number;
     totalShowcases?: number;
     completedQuizzes?: number;
     recentActivities?: number;

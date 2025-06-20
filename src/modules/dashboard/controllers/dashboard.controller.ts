@@ -18,11 +18,11 @@ import {
 import { RolesGuard } from 'src/modules/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/interfaces';
-import { DashboardService } from './dashboard.service';
-import { JwtAuthGuard } from '../auth/guards';
+import { DashboardService } from '../services/dashboard.service';
+import { JwtAuthGuard } from '../../auth/guards';
 import { CurrentUser } from 'src/common/decorators';
 import { LoggerService } from 'src/common/logger/logger.service';
-import { User } from '../entities';
+import { User } from '../../entities';
 
 @ApiTags('Dashboard')
 @ApiBearerAuth()

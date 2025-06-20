@@ -8,7 +8,6 @@ import {
   BadRequestException,
   Param,
   ParseIntPipe,
-  ValidationPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AiService } from '../ai/ai.service';
@@ -17,7 +16,7 @@ import { SubmitAnswersDto, UserRole } from 'src/common/interfaces';
 import { CurrentUser } from 'src/common/decorators';
 import { User } from '../entities';
 import { Roles } from 'src/common/decorators/roles.decorator';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Controller('users')
@@ -66,7 +65,6 @@ export class UserController {
   @Post('quiz/:id/generate-profile')
   async generateProfileOutCome(
     @Param('id', ParseIntPipe) quizId: number,
-    // @Body() dto: SubmitAnswersDto,
     @CurrentUser() user: User,
   ) {
     const dto = new SubmitAnswersDto();
@@ -82,6 +80,8 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'Educational content generated successfully' })
   @ApiResponse({ status: 400, description: 'Invalid user role or no quiz analysis found' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({status: 403, description: 'Forbidden'})
+  @ApiBearerAuth()
   async generateEducationalContent(
     @CurrentUser() user: User,
   ) {

@@ -1,9 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, DeleteDateColumn } from "typeorm";
 import { UserRole } from "src/common/interfaces";
 import { CareerQuiz } from "../career-quiz.entity";
 import { Badge } from "../badges.entity";
 import { EducationalContent } from "../educational_content.entity";
 import { ProjectShowcase } from "../showcase.entity";
+import { School } from "../school.entity";
 
 @Entity()
 export class User {
@@ -29,6 +30,9 @@ export class User {
     @OneToMany(() => Badge, badges => badges.user)
     badges: Badge[];
 
+    @ManyToOne(() => School, school => school.users, { nullable: true })
+    school: School;
+
     @OneToMany(() => EducationalContent, educationalContents => educationalContents.user)
     educationalContents: EducationalContent[];
 
@@ -43,4 +47,7 @@ export class User {
 
     @Column()
     password: string;
+
+    @DeleteDateColumn({nullable: true})
+    deletedAt: Date;
 }

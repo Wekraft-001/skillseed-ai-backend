@@ -263,7 +263,7 @@ export class AiService {
       ${latestQuiz.analysis.includes('Recommended activities') ? latestQuiz.analysis.split('Recommended activities:')[1] : 'Not specified'}
 
       Create a mix of: 
-      - 2 educational videos recommendations (include YouTube links if possible)
+      - 2 educational videos recommendations (must include YouTube links if possible, if none found, use placeholder links like "https://youtube.com/example)
       - 3 book recommandations with title, author, reading level, and theme
       - 2 interactives games that aligns with their skills
 
@@ -287,7 +287,7 @@ export class AiService {
 
       const educationalContent = new EducationalContent();
       educationalContent.user = user;
-      educationalContent.videoUrl = JsonEducationContent.video;
+      educationalContent.videoUrl = JsonEducationContent.video || [];
       educationalContent.books = JsonEducationContent.books || [];
       educationalContent.games = JsonEducationContent.games || [];
 

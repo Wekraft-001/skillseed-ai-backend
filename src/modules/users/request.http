@@ -1,7 +1,7 @@
 ### Get my profile
 
 GET http://localhost:3000/api/users/me
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImZpcnN0TmFtZSI6IlN0YXBob3JkIiwiYWdlIjoxMCwiZW1haWwiOiJzdGFwaG9yZEBnbWFpbC50ZXN0IiwiaWF0IjoxNzQ4OTY1MTEyLCJleHAiOjE3NDkwNTE1MTJ9.WtM6CK-fjtguL-UgqbDP_zSAa1_-VjhJs769OWz9YZA
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcsImZpcnN0TmFtZSI6Illhbm5pY2siLCJhZ2UiOjEwMCwiZW1haWwiOiJ5YW5uaWNrQGdtYWlsLnRlc3QiLCJyb2xlIjoic3VwZXJfYWRtaW4iLCJpYXQiOjE3NTAzMzIxNzQsImV4cCI6MTc1MDQxODU3NH0.gbjd9H_WSEnqIzj2CvX02KPq1n5W5ssCsQhRXeAg9R4
 
 
 ### Get all the users
@@ -72,9 +72,9 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImZpcnN0T
 
 ### Generate educational content
 
-POST http://localhost:3000/api/users/gen-edu-content
+POST http://localhost:3000/api/users/gen-educ-content
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImZpcnN0TmFtZSI6IlN0YXBob3JkIiwiYWdlIjoxMCwiZW1haWwiOiJzdGFwaG9yZEBnbWFpbC50ZXN0IiwiaWF0IjoxNzQ4OTY1MTEyLCJleHAiOjE3NDkwNTE1MTJ9.WtM6CK-fjtguL-UgqbDP_zSAa1_-VjhJs769OWz9YZA
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjYsImZpcnN0TmFtZSI6IlN0YXBob3JkIiwiYWdlIjoxMCwiZW1haWwiOiJzdGFwaG9yZEBnbWFpbC50ZXN0Iiwicm9sZSI6InN0dWRlbnQiLCJpYXQiOjE3NDk3NDQ2OTIsImV4cCI6MTc0OTgzMTA5Mn0.yjA8LQDpOCT2NUf9LMXs9MGrFYq0lRtyWRYmizCwaHU
 
 
 

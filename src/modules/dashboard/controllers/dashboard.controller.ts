@@ -35,7 +35,7 @@ export class DashboardController {
     private readonly logger: LoggerService,
   ) {}
 
-  @Get()
+  @Get('/get-data')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({

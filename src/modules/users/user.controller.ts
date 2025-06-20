@@ -16,7 +16,7 @@ import { SubmitAnswersDto, UserRole } from 'src/common/interfaces';
 import { CurrentUser } from 'src/common/decorators';
 import { User } from '../entities';
 import { Roles } from 'src/common/decorators/roles.decorator';
-import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Controller('users')
@@ -26,6 +26,16 @@ export class UserController {
     private readonly userServices: UserService,
   ) {}
 
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiResponse({ status: 200, description: 'User profile retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.STUDENT, UserRole.MENTOR, UserRole.PARENT, UserRole.SCHOOL_ADMIN, UserRole.SUPER_ADMIN)
+  @ApiTags('Profile')
   @UseGuards(AuthGuard('jwt'))
   @Get('me')
   getProfile(@CurrentUser() user) {
@@ -38,16 +48,50 @@ export class UserController {
     return this.aiService.generateCareerQuiz(req.user);
   }
 
+  @ApiOperation({ summary: 'Get all users' })
+  @ApiResponse({ status: 200, description: 'All users retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  @ApiTags('Users')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.SCHOOL_ADMIN)
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200, description: 'List of all users', type: [User] })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Users not found' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
   @Get('all')
   async getAllUsers() {
     return this.userServices.findAllUsers();
   }
 
+  @ApiTags('Quizzes')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all quizzes' })
+  @ApiResponse({ status: 200, description: 'All quizzes retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.STUDENT, UserRole.MENTOR, UserRole.PARENT, UserRole.SCHOOL_ADMIN, UserRole.SUPER_ADMIN)
+  @ApiResponse({ status: 200, description: 'List of all quizzes', type: [SubmitAnswersDto] })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   @Get('quiz/all')
   async getAllQuizzes() {
     return this.aiService.getAllQuizzes();
   }
 
+
+  @ApiTags('Submit answers')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Submit quiz answers' })
+  @ApiResponse({ status: 200, description: 'Quiz answers submitted successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - Quiz ID does not match' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.STUDENT)
   @Post('quiz/:id/answers')
@@ -62,6 +106,23 @@ export class UserController {
     return this.aiService.submitAnswers(answersDto, user.id);
   }
 
+  @ApiTags('Generate profile outcome')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Generate profile outcome based on quiz ID' })
+  @ApiResponse({ status: 200, description: 'Profile outcome generated successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - Quiz ID is invalid' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  @ApiTags('Profile Outcome')
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200, description: 'Profile outcome generated successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - Quiz ID is invalid' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.STUDENT)
   @UseGuards(AuthGuard('jwt'))
   @Post('quiz/:id/generate-profile')
   async generateProfileOutCome(

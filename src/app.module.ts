@@ -9,6 +9,8 @@ import { LoggerModule } from './common/logger/logger.module';
 import { UserModule } from './modules/users/user.module';
 import { AiModule } from './modules/ai/ai.module';
 import { ProjectShowcase } from './modules/entities/showcase.entity';
+import { School } from './modules/entities/school.entity';
+import { SchoolModule } from './modules/dashboard/modules/school.module';
 
 @Module({
   imports: [
@@ -24,13 +26,14 @@ import { ProjectShowcase } from './modules/entities/showcase.entity';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      entities: [User, Badge, ProjectShowcase, EducationalContent],
+      entities: [User, Badge, ProjectShowcase, EducationalContent, School],
       synchronize: true,
       autoLoadEntities: true,
     }),
     AuthModule,
     UserModule,
-    AiModule
+    AiModule,
+    SchoolModule
   ],
   controllers: [AppController],
   providers: [AppService],

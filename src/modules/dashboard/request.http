@@ -1,0 +1,23 @@
+## Onboarding school
+
+POST http://localhost:3000/api/schools/onboard
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcsImZpcnN0TmFtZSI6Illhbm5pY2siLCJhZ2UiOjEwMCwiZW1haWwiOiJ5YW5uaWNrQGdtYWlsLnRlc3QiLCJyb2xlIjoic3VwZXJfYWRtaW4iLCJpYXQiOjE3NTAzMzIxNzQsImV4cCI6MTc1MDQxODU3NH0.gbjd9H_WSEnqIzj2CvX02KPq1n5W5ssCsQhRXeAg9R4
+
+{
+    "schoolName": "Asteria Urafiki Hight School",
+    "email": "asteria@test.ed",
+    "phoneNumber": 786094247,
+    "address": "Bukavu-Cimpunda, South Kivu, DRC",
+    "logoUrl": "https://example.com/logo.png"
+}
+
+### Get all schools details
+GET http://localhost:3000/api/schools/all
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcsImZpcnN0TmFtZSI6Illhbm5pY2siLCJhZ2UiOjEwMCwiZW1haWwiOiJ5YW5uaWNrQGdtYWlsLnRlc3QiLCJyb2xlIjoic3VwZXJfYWRtaW4iLCJpYXQiOjE3NTAzMzIxNzQsImV4cCI6MTc1MDQxODU3NH0.gbjd9H_WSEnqIzj2CvX02KPq1n5W5ssCsQhRXeAg9R4
+
+
+
+### Delete a school
+DELETE http://localhost:3000/api/schools/delete/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcsImZpcnN0TmFtZSI6Illhbm5pY2siLCJhZ2UiOjEwMCwiZW1haWwiOiJ5YW5uaWNrQGdtYWlsLnRlc3QiLCJyb2xlIjoic3VwZXJfYWRtaW4iLCJpYXQiOjE3NTA0MDM2MzEsImV4cCI6MTc1MDQ5MDAzMX0.5IOgHtYK30irduYOsXeOgLMJpYDMa0Qz1tJxdWE2EeY

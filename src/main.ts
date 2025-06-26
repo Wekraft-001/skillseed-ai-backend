@@ -29,6 +29,7 @@ async function bootstrap() {
     .setTitle('Skillseed ai')
     .setDescription('Skillseed API documentation')
     .setVersion('1.0')
+    .addServer('/api')
     .addBearerAuth({
       type: 'http',
       scheme: 'bearer',

@@ -7,9 +7,9 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import OpenAI from 'openai';
 import { LoggerService } from 'src/common/logger/logger.service';
-import { CareerQuiz } from '../entities/career-quiz.entity';
+import { CareerQuiz } from '../schemas/career-quiz.schema';
 import { IsNull, Not, Repository } from 'typeorm';
-import { EducationalContent, User } from '../entities';
+import { EducationalContent, User } from '../schemas';
 import { SubmitAnswersDto, UserRole } from 'src/common/interfaces';
 
 @Injectable()

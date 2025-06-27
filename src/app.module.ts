@@ -2,15 +2,14 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
+// import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './modules/auth/auth.module';
-import { Badge, EducationalContent, User } from './modules/entities';
+import { Badge, EducationalContent, User, School, ProjectShowcase } from './modules/schemas';
 import { LoggerModule } from './common/logger/logger.module';
 import { UserModule } from './modules/users/user.module';
 import { AiModule } from './modules/ai/ai.module';
-import { ProjectShowcase } from './modules/entities/showcase.entity';
-import { School } from './modules/entities/school.entity';
 import { SchoolModule } from './modules/dashboard/modules/school.module';
+import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   imports: [
@@ -19,17 +18,7 @@ import { SchoolModule } from './modules/dashboard/modules/school.module';
       // envFilePath: process.env.NODE_ENV === 'production' ? '.env.development',
     }),
     LoggerModule,
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT),
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-      entities: [User, Badge, ProjectShowcase, EducationalContent, School],
-      synchronize: true,
-      autoLoadEntities: true,
-    }),
+    MongooseModule.forRoot(process.env.MONGODB_URI),
     AuthModule,
     UserModule,
     AiModule,

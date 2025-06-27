@@ -1,11 +1,10 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { School } from '../../entities/school.entity';
-import { Repository } from 'typeorm';
-import { User } from '../../entities';
+import { Injectable, NotFoundException } from '@nestjs/common';
+// import { InjectRepository } from '@nestjs/typeorm';
+import { InjectModel } from '@nestjs/mongoose';
+import { ClientSession, Model, Types } from 'mongoose';
+import { School, SchoolDocument } from '../../schemas/school.schema';
+// import { Repository } from 'typeorm';
+import { User, UserDocument } from '../../schemas';
 import { LoggerService } from 'src/common/logger/logger.service';
 import { PasswordService } from '.';
 import { EmailService } from '.';
@@ -14,8 +13,9 @@ import { CreateSchoolDto, UserRole } from 'src/common/interfaces';
 @Injectable()
 export class SchoolOnboardingService {
   constructor(
-    @InjectRepository(School) private readonly schoolRepo: Repository<School>,
-    @InjectRepository(User) private readonly userRepo: Repository<User>,
+    @InjectModel(School.name)
+    private readonly schoolModel: Model<SchoolDocument>,
+    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     private readonly logger: LoggerService,
     private readonly passwordService: PasswordService,
     private readonly emailService: EmailService,
@@ -25,17 +25,18 @@ export class SchoolOnboardingService {
     createSchoolDto: CreateSchoolDto,
     superAdmin: User,
   ): Promise<{ school: School; admin: User }> {
-    const queryRunner = this.schoolRepo.manager.connection.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    const session: ClientSession = await this.schoolModel.db.startSession();
+    // const queryRunner = this.schoolRepo.manager.connection.createQueryRunner();
 
     try {
+      session.startTransaction();
+
       const username = this.generateUsername(createSchoolDto.schoolName);
       const tempPassword = this.passwordService.generateRandomPassword();
       const hashedPassword =
         await this.passwordService.hashPassword(tempPassword);
 
-      const adminUser = this.userRepo.create({
+      const adminUser = new this.userModel({
         firstName: 'Admin',
         lastName: createSchoolDto.schoolName,
         email: createSchoolDto.email,
@@ -43,25 +44,23 @@ export class SchoolOnboardingService {
         role: UserRole.SCHOOL_ADMIN,
       });
 
-      await queryRunner.manager.save(adminUser);
+      await adminUser.save({ session });
 
-      const school = this.schoolRepo.create({
+      const school = new this.schoolModel({
         schoolName: createSchoolDto.schoolName,
         address: createSchoolDto.address,
         logoUrl: createSchoolDto.logoUrl,
         phoneNumber: createSchoolDto.phoneNumber,
         email: createSchoolDto.email,
-        admin: adminUser,
-        superAdmin: superAdmin,
+        admin: adminUser._id,
+        superAdmin: superAdmin._id,
       });
 
-      await queryRunner.manager.save(school);
+      await school.save({ session });
 
       // updating admin user with school reference
-      adminUser.school = school;
-      await queryRunner.manager.save(adminUser);
-
-      await queryRunner.commitTransaction();
+      adminUser.school = school._id as Types.ObjectId;
+      await adminUser.save({ session: session });
 
       await this.emailService.sendSchoolOnboardingEmail(
         createSchoolDto.email,
@@ -69,73 +68,117 @@ export class SchoolOnboardingService {
         tempPassword,
       );
 
-      return { school, admin: adminUser };
+      const populatedSchool = await this.schoolModel
+        .findById(school._id)
+        .populate('admin superAdmin')
+        .exec();
+
+      return { school: populatedSchool, admin: adminUser };
     } catch (error) {
+      session.abortTransaction();
       this.logger.error('Error during school onboarding', error);
       throw error;
+    } finally {
+      session.endSession();
     }
   }
 
   async getAllSchools(): Promise<School[]> {
     try {
-      return await this.schoolRepo.find({
-        relations: ['admin', 'users', 'superAdmin'],
-        order: {
-          createdAt: 'DESC',
-        },
-      });
-    } catch (error) {}
+      return await this.schoolModel
+        .find()
+        .populate('admin superAdmin users')
+        .sort({ createdAt: -1 })
+        .exec();
+    } catch (error) {
+      this.logger.error('Error fetching schools', error);
+      throw error;
+    }
   }
 
   async deleteSchool(schoolId: number) {
-    const queryRunner = this.schoolRepo.manager.connection.createQueryRunner();
+    const session = await this.schoolModel.db.startSession();
+    session.startTransaction();
 
     try {
-      await queryRunner.connect();
-      await queryRunner.startTransaction();
-
-      const school = await queryRunner.manager.findOne(School, {
-        where: { id: schoolId },
-        relations: ['admin', 'users'],
-        withDeleted: true,
-      });
+      const school = await this.schoolModel
+        .findById(schoolId)
+        .populate('admin users')
+        .session(session)
+        .exec();
 
       if (!school) {
         throw new NotFoundException(`School with ID ${schoolId} not found`);
       }
 
       if (school.users?.length) {
-        const userIds = school.users.map((user) => user.id);
-        await queryRunner.manager.softDelete(User, userIds);
+        const userIds = school.users.map((user) => user._id);
+        await this.userModel.updateMany(
+          { _id: { $in: userIds } },
+          { deletedAt: new Date() },
+          { session },
+        );
       }
 
       if (school.admin) {
-        await queryRunner.manager.softDelete(User, { id: school.admin.id });
+        await this.userModel.findByIdAndUpdate(
+          school.admin._id,
+          { deletedAt: new Date() },
+          { session },
+        );
       }
 
-      await queryRunner.manager.softDelete(School, schoolId);
+      await this.schoolModel.findByIdAndUpdate(
+        schoolId,
+        { deletedAt: new Date() },
+        { session },
+      );
 
-      await queryRunner.commitTransaction();
+      await session.commitTransaction();
 
       this.logger.log(`School with ID ${schoolId} deleted successfully`);
     } catch (error) {
-      await queryRunner.rollbackTransaction();
+      await session.abortTransaction();
       this.logger.error('Error deleting school', error);
       throw error;
+    } finally {
+      session.endSession();
     }
   }
 
-  async restoreSchool(schoolId: number) {
-    await this.schoolRepo.restore({ id: schoolId });
-    await this.userRepo.restore({ school: { id: schoolId } });
-    await this.userRepo.restore({
-      id: (
-        await this.schoolRepo.findOne({
-          where: { id: schoolId },
-          select: ['admin'],
-        })
-      ).admin.id,
-    });
+  async restoreSchool(schoolId: string) {
+    const session = await this.schoolModel.db.startSession();
+    session.startTransaction();
+
+    try {
+      await this.schoolModel.findByIdAndUpdate(
+        schoolId,
+        { $unset: { deletedAt: 1 } },
+        { session },
+      );
+
+      await this.userModel.updateMany(
+        { school: schoolId },
+        { $unset: { deletedAt: 1 } },
+        { session },
+      );
+
+      const school = await this.schoolModel.findById(schoolId).session(session);
+      if (school?.admin) {
+        await this.userModel.findByIdAndUpdate(
+          school.admin,
+          { $unset: { deletedAt: 1 } },
+          { session },
+        );
+      }
+
+      await session.commitTransaction();
+    } catch (error) {
+      // await session.rollbackTransaction()
+      throw error;
+    } finally {
+      session.endSession();
+    }
   }
 
   private generateUsername(schoolName: string): string {

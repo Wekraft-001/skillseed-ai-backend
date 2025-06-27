@@ -18,7 +18,7 @@ import {
   UserRole,
 } from 'src/common/interfaces';
 import { CurrentUser } from 'src/common/decorators';
-import { User } from '../entities';
+import { User } from '../schemas';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import {
   ApiBearerAuth,
@@ -147,7 +147,7 @@ export class UserController {
     if (id !== answersDto.quizId) {
       throw new BadRequestException('Quiz ID does not match');
     }
-    return this.aiService.submitAnswers(answersDto, user.id);
+    return this.aiService.submitAnswers(answersDto, user._id);
   }
 
   @ApiTags('Generate profile outcome')

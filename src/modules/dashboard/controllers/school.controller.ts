@@ -11,8 +11,8 @@ import {
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateSchoolDto, UserRole } from 'src/common/interfaces';
 import { SchoolOnboardingService } from '../services';
-import { School } from 'src/modules/entities/school.entity';
-import { User } from 'src/modules/entities';
+import { School } from 'src/modules/schemas/school.schema';
+import { User } from 'src/modules/schemas';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from 'src/modules/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
@@ -114,7 +114,7 @@ export class SchoolController {
   })
   @ApiParam({
     name: 'id',
-    type: Number,
+    type: String,
     description: 'ID of the school to delete',
   })
   @ApiResponse({

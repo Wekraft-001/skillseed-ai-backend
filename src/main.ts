@@ -13,39 +13,43 @@ async function bootstrap() {
   });
 
   app.enableCors({
-    origin: ['http://localhost:3000'],
+    origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    transform: true,
-    forbidNonWhitelisted: true,
-    transformOptions: {
-      enableImplicitConversion: true,
-    },
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
   const config = new DocumentBuilder()
     .setTitle('Skillseed ai')
     .setDescription('Skillseed API documentation')
     .setVersion('1.0')
     .addServer('/api')
-    .addBearerAuth({
-      type: 'http',
-      scheme: 'bearer',
-      bearerFormat: 'JWT',
-      name: 'JWT',
-      description: 'Enter JWT token',
-      in: 'header',
-    },
-    'JWT-auth',
-  ).build();
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth',
+    )
+    .build();
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
-    }
+    },
   });
 
   const logger = app.get(WINSTON_MODULE_NEST_PROVIDER);
@@ -62,6 +66,5 @@ async function bootstrap() {
   await app.listen(process.env.PORT ?? 3000);
   console.log(`Application is running on: ${await app.getUrl()}/${apiPrefix}`);
   console.log(`Swagger is available on: ${await app.getUrl()}/api/docs`);
-  
 }
 bootstrap();

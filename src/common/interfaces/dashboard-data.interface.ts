@@ -1,6 +1,6 @@
-import { Badge, EducationalContent, User } from "src/modules/entities";
-import { ProjectShowcase } from "src/modules/entities/showcase.entity";
-import { School } from "src/modules/entities/school.entity";
+import { Badge, EducationalContent, User } from "src/modules/schemas";
+import { ProjectShowcase } from "src/modules/schemas/showcase.schema";
+import { School } from "src/modules/schemas/school.schema";
 
 export interface DashboardData {
     educationalContents?: EducationalContent[];

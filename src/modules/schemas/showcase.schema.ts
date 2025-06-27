@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToOne, ManyToOne } from "typeorm";
-import { Badge } from "./badges.entity";
-import { User } from "./users/user.entity";
+import { Badge } from "./badges.schema";
+import { User } from "./users/user.schema";
 import { UserRole } from "src/common/interfaces";
 
 @Entity()

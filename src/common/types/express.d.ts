@@ -1,4 +1,4 @@
-import { User } from "src/modules/entities";
+import { User } from "src/modules/schemas";
 
 declare global {
     namespace Express {

@@ -1,15 +1,15 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { Badge, CareerQuiz, EducationalContent } from '../../entities';
+import { Badge, CareerQuiz, EducationalContent } from '../../schemas';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ProjectShowcase } from '../../entities/showcase.entity';
-import { User } from '../../entities';
+import { ProjectShowcase } from '../../schemas/showcase.schema';
+import { User } from '../../schemas';
 import { UserRole } from 'src/common/interfaces';
 import { DashboardData } from 'src/common/interfaces';
 import { DashboardSummary } from 'src/common/interfaces';
 import { LoggerService } from 'src/common/logger/logger.service';
 import { AiService } from '../../ai/ai.service';
-import { School } from '../../entities/school.entity';
+import { School } from '../../schemas/school.schema';
 
 @Injectable()
 export class DashboardService {

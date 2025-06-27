@@ -25,9 +25,6 @@ import { LoggerService } from 'src/common/logger/logger.service';
 import { User } from '../../entities';
 import { ApiResponseDto } from 'src/common/interfaces/api-response.dto';
 
-@ApiTags('Dashboard')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('dashboard')
 export class DashboardController {
   constructor(
@@ -38,6 +35,9 @@ export class DashboardController {
   @Get('/get-data')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
+  @ApiTags('Dashboard')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({
     summary: 'Get dashboard data',
     description:
@@ -76,7 +76,7 @@ export class DashboardController {
         message: 'Dashboard data retrieved successfully',
         timestamp: new Date().toISOString(),
         data: dashboardData,
-        userId: user.id
+        userId: user.id,
       };
     } catch (error) {
       this.logger.error(

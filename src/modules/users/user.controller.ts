@@ -12,11 +12,22 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { AiService } from '../ai/ai.service';
 import { UserService } from './user.service';
-import { SubmitAnswersDto, UserRole } from 'src/common/interfaces';
+import {
+  SubmitAnswersDto,
+  UserProfileDto,
+  UserRole,
+} from 'src/common/interfaces';
 import { CurrentUser } from 'src/common/decorators';
 import { User } from '../entities';
 import { Roles } from 'src/common/decorators/roles.decorator';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Controller('users')
@@ -27,20 +38,35 @@ export class UserController {
   ) {}
 
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current user profile' })
-  @ApiResponse({ status: 200, description: 'User profile retrieved successfully' })
+  @ApiOperation({
+    summary: 'Get current user profile',
+    description: 'Returns the profile of the user based on the JWT token',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User profile retrieved successfully',
+    type: UserProfileDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.STUDENT, UserRole.MENTOR, UserRole.PARENT, UserRole.SCHOOL_ADMIN, UserRole.SUPER_ADMIN)
-  @ApiTags('Profile')
-  @UseGuards(AuthGuard('jwt'))
+  @Roles(
+    UserRole.STUDENT,
+    UserRole.MENTOR,
+    UserRole.PARENT,
+    UserRole.SCHOOL_ADMIN,
+    UserRole.SUPER_ADMIN,
+  )
+  @ApiTags('User Profile')
+  @ApiOkResponse({ type: UserProfileDto })
   @Get('me')
   getProfile(@CurrentUser() user) {
     return user;
   }
+
+
 
   @UseGuards(AuthGuard('jwt'))
   @Get('quiz')
@@ -70,25 +96,43 @@ export class UserController {
   @ApiTags('Quizzes')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all quizzes' })
-  @ApiResponse({ status: 200, description: 'All quizzes retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'All quizzes retrieved successfully',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.STUDENT, UserRole.MENTOR, UserRole.PARENT, UserRole.SCHOOL_ADMIN, UserRole.SUPER_ADMIN)
-  @ApiResponse({ status: 200, description: 'List of all quizzes', type: [SubmitAnswersDto] })
+  @Roles(
+    UserRole.STUDENT,
+    UserRole.MENTOR,
+    UserRole.PARENT,
+    UserRole.SCHOOL_ADMIN,
+    UserRole.SUPER_ADMIN,
+  )
+  @ApiResponse({
+    status: 200,
+    description: 'List of all quizzes',
+    type: [SubmitAnswersDto],
+  })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @Get('quiz/all')
   async getAllQuizzes() {
     return this.aiService.getAllQuizzes();
   }
 
-
   @ApiTags('Submit answers')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Submit quiz answers' })
-  @ApiResponse({ status: 200, description: 'Quiz answers submitted successfully' })
-  @ApiResponse({ status: 400, description: 'Bad request - Quiz ID does not match' })
+  @ApiResponse({
+    status: 200,
+    description: 'Quiz answers submitted successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Quiz ID does not match',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
@@ -109,14 +153,20 @@ export class UserController {
   @ApiTags('Generate profile outcome')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Generate profile outcome based on quiz ID' })
-  @ApiResponse({ status: 200, description: 'Profile outcome generated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile outcome generated successfully',
+  })
   @ApiResponse({ status: 400, description: 'Bad request - Quiz ID is invalid' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   @ApiTags('Profile Outcome')
   @ApiBearerAuth()
-  @ApiResponse({ status: 200, description: 'Profile outcome generated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile outcome generated successfully',
+  })
   @ApiResponse({ status: 400, description: 'Bad request - Quiz ID is invalid' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
@@ -138,18 +188,24 @@ export class UserController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Post('/gen-educ-content')
   @Roles(UserRole.STUDENT)
-  @ApiOperation({summary: 'Generate educational content for the user'})
-  @ApiResponse({ status: 200, description: 'Educational content generated successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid user role or no quiz analysis found' })
+  @ApiOperation({ summary: 'Generate educational content for the user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Educational content generated successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid user role or no quiz analysis found',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({status: 403, description: 'Forbidden'})
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiBearerAuth()
-  async generateEducationalContent(
-    @CurrentUser() user: User,
-  ) {
-    if( user.role !== UserRole.STUDENT) {
-      throw new BadRequestException('Only students can generate educational content');
+  async generateEducationalContent(@CurrentUser() user: User) {
+    if (user.role !== UserRole.STUDENT) {
+      throw new BadRequestException(
+        'Only students can generate educational content',
+      );
     }
-    return await this.aiService.generateEducationalContent(user.id)
+    return await this.aiService.generateEducationalContent(user.id);
   }
 }

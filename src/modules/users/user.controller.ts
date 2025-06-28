@@ -66,8 +66,6 @@ export class UserController {
     return user;
   }
 
-
-
   @UseGuards(AuthGuard('jwt'))
   @Get('quiz')
   async getQuiz(@Req() req) {
@@ -147,7 +145,7 @@ export class UserController {
     if (id !== answersDto.quizId) {
       throw new BadRequestException('Quiz ID does not match');
     }
-    return this.aiService.submitAnswers(answersDto, user._id);
+    return this.aiService.submitAnswers(answersDto, (user as any)._id);
   }
 
   @ApiTags('Generate profile outcome')
@@ -182,7 +180,7 @@ export class UserController {
     const dto = new SubmitAnswersDto();
     dto.quizId = quizId;
 
-    return this.aiService.generateProfileOutcome(dto, user.id);
+    return this.aiService.generateProfileOutcome(dto, (user as any).id);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -206,6 +204,6 @@ export class UserController {
         'Only students can generate educational content',
       );
     }
-    return await this.aiService.generateEducationalContent(user.id);
+    return await this.aiService.generateEducationalContent((user as any).id);
   }
 }

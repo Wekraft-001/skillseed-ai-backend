@@ -1,30 +1,47 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
-import { Badge, CareerQuiz, EducationalContent } from '../../schemas';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-import { ProjectShowcase } from '../../schemas/showcase.schema';
-import { User } from '../../schemas';
-import { UserRole } from 'src/common/interfaces';
-import { DashboardData } from 'src/common/interfaces';
-import { DashboardSummary } from 'src/common/interfaces';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { LoggerService } from 'src/common/logger/logger.service';
 import { AiService } from '../../ai/ai.service';
+import {
+  DashboardData,
+  DashboardSummary,
+  UserRole,
+} from 'src/common/interfaces';
+
+import { EducationalContent } from '../../schemas/educational_content.schema';
+import { Badge, User } from '../../schemas';
+import { ProjectShowcase } from '../../schemas/showcase.schema';
+import { CareerQuiz } from '../../schemas/career-quiz.schema';
 import { School } from '../../schemas/school.schema';
 
 @Injectable()
 export class DashboardService {
   constructor(
-    @InjectRepository(EducationalContent)
-    private readonly eduContentRepo: Repository<EducationalContent>,
-    @InjectRepository(Badge) private readonly badgeRepo: Repository<Badge>,
-    @InjectRepository(ProjectShowcase)
-    private readonly projectShowcaseRepo: Repository<ProjectShowcase>,
+    @InjectModel(EducationalContent.name)
+    private readonly eduContentModel: Model<EducationalContent>,
+
+    @InjectModel(Badge.name)
+    private readonly badgeModel: Model<Badge>,
+
+    @InjectModel(ProjectShowcase.name)
+    private readonly projectShowcaseModel: Model<ProjectShowcase>,
+
+    @InjectModel(CareerQuiz.name)
+    private readonly quizModel: Model<CareerQuiz>,
+
+    @InjectModel(School.name)
+    private readonly schoolModel: Model<School>,
+
+    @InjectModel(User.name)
+    private readonly userModel: Model<User>,
+
     private readonly logger: LoggerService,
-    private aiService: AiService,
-    @InjectRepository(CareerQuiz)
-    private readonly quizRepo: Repository<CareerQuiz>,
-    @InjectRepository(School) private readonly schoolRepo: Repository<School>,
-    @InjectRepository(User) private readonly userRepo: Repository<User>,
+    private readonly aiService: AiService,
   ) {}
 
   async getDashboardData(user: User): Promise<{
@@ -34,57 +51,55 @@ export class DashboardService {
   }> {
     try {
       this.logger.log(
-        `Fetching dashboard data for user: ${user.id} with role: ${user.role}`,
+        `Fetching dashboard data for user: ${user._id} with role: ${user.role}`,
       );
 
-      // let data: DashboardData = {};
-      // let summary: DashboardSummary = {};
-    const [data, summary] = await (() => {
-      switch (user.role) {
-        case UserRole.STUDENT:
-          return Promise.all([
-            this.getStudentDashboardData(user),
-            this.getStudentSummary(user)
-          ]);
-        case UserRole.MENTOR:
-          return Promise.all([
-            this.getMentorDashboardData(user),
-            this.getMentorSummary(user)
-          ]);
-        case UserRole.PARENT:
-          return Promise.all([
-            this.getParentDashboardData(user),
-            this.getParentSummary(user)
-          ]);
-        case UserRole.SCHOOL_ADMIN:
-          return Promise.all([
-            this.getSchoolAdminDashboardData(user),
-            this.getSchoolAdminSummary(user)
-          ]);
-        case UserRole.SUPER_ADMIN:
-          return Promise.all([
-            this.getSuperAdminDashboardData(user),
-            this.getSuperAdminSummary(user)
-          ]);
-        default:
-          throw new ForbiddenException('Invalid user role');
-      }
-    })();
+      const [data, summary] = await (() => {
+        switch (user.role) {
+          case UserRole.STUDENT:
+            return Promise.all([
+              this.getStudentDashboardData(user),
+              this.getStudentSummary(user),
+            ]);
+          case UserRole.MENTOR:
+            return Promise.all([
+              this.getMentorDashboardData(user),
+              this.getMentorSummary(user),
+            ]);
+          case UserRole.PARENT:
+            return Promise.all([
+              this.getParentDashboardData(user),
+              this.getParentSummary(user),
+            ]);
+          case UserRole.SCHOOL_ADMIN:
+            return Promise.all([
+              this.getSchoolAdminDashboardData(user),
+              this.getSchoolAdminSummary(user),
+            ]);
+          case UserRole.SUPER_ADMIN:
+            return Promise.all([
+              this.getSuperAdminDashboardData(user),
+              this.getSuperAdminSummary(user),
+            ]);
+          default:
+            throw new ForbiddenException('Invalid user role');
+        }
+      })();
 
       return {
-        data:{
+        data: {
           ...data,
           success: true,
           message: 'Dashboard data retrieved successfully',
           timestamp: new Date().toISOString(),
-          userId: user.id,
+          userId: (user as any)._id,
         },
         summary,
         role: user.role,
       };
     } catch (error) {
       this.logger.error(
-        `Error fetching dashboard data for user: ${user.id}`,
+        `Error fetching dashboard data for user: ${user._id}`,
         error,
       );
       throw error;
@@ -92,329 +107,158 @@ export class DashboardService {
   }
 
   private async getSuperAdminDashboardData(user: User): Promise<DashboardData> {
-    try {
-      const [schools, students] = await Promise.all([
-        this.schoolRepo.find({
-          relations: ['users', 'admin'],
-          where: { deletedAt: null },
-          order: { createdAt: 'DESC' },
-          select: {
-            id: true,
-            schoolName: true,
-            address: true,
-            logoUrl: true,
-            phoneNumber: true,
-            email: true,
-            createdAt: true,
-            admin: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-            },
-            superAdmin: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-            },
-          },
-        }),
-        this.userRepo.find({
-          where: { role: UserRole.STUDENT },
-          relations: ['school'],
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            school: {id: true, schoolName: true},
-          }
-          // deletedAt: IsNull(),
-        }),
-      ]);
+    const schools = await this.schoolModel
+      .find({ deletedAt: null })
+      .populate(['users', 'admin', 'superAdmin']);
+    const students = await this.userModel
+      .find({ role: UserRole.STUDENT })
+      .populate('school');
 
-      return {
-        success: true,
-        message: 'Super admin dashboard data retrieved successfully',
-        timestamp: new Date().toISOString(),
-        userId: user.id,
-        schools,
-        students,
-        analytics: {
-          totalSchools: schools.length,
-          totalStudents: students.length,
-        }
-      };
-    } catch (error) {
-      this.logger.error(
-        `Error fetching super admin dashboard data for user: ${user.id}`,
-        error,
-      );
-      throw error;
-    }
+    return {
+      success: true,
+      message: 'Super admin dashboard data retrieved successfully',
+      timestamp: new Date().toISOString(),
+      userId: (user as any)._id,
+      schools,
+      students,
+      analytics: {
+        totalSchools: schools.length,
+        totalStudents: students.length,
+      },
+    };
   }
 
   private async getSuperAdminSummary(user: User): Promise<DashboardSummary> {
-    try {
-      const [schoolCount, userCount] = await Promise.all([
-        this.schoolRepo.count(),
-        this.userRepo.count(),
-      ]);
-      return {
-        totalSchools: schoolCount,
-        totalUsers: userCount,
-      };
-    } catch (error) {
-      this.logger.error(
-        `Error fetching super admin summary for user: ${user.id}`,
-        error,
-      );
-      throw error;
-    }
+    const schoolCount = await this.schoolModel.countDocuments();
+    const userCount = await this.userModel.countDocuments();
+    return {
+      totalSchools: schoolCount,
+      totalUsers: userCount,
+    };
   }
 
   private async getStudentDashboardData(user: User): Promise<DashboardData> {
-    try {
-      const [educationalContents, badges] = await Promise.all([
-        this.getEducationalContents(user),
-        this.getStudentsBadges(user),
-      ]);
+    const [educationalContents, badges] = await Promise.all([
+      this.getEducationalContents(user),
+      this.getStudentsBadges(user),
+    ]);
 
-      return {
-        success: true,
-        message: 'Student dashboard data retrieved successfully',
-        timestamp: new Date().toISOString(),
-        userId: user.id,
-        educationalContents,
-        badges,
-      };
-    } catch (error) {
-      this.logger.error(
-        `Error fetching student dashboard data for user: ${user.id}`,
-        error,
-      );
-      throw error;
-    }
+    return {
+      success: true,
+      message: 'Student dashboard data retrieved successfully',
+      timestamp: new Date().toISOString(),
+      userId: (user as any)._id,
+      educationalContents,
+      badges,
+    };
   }
 
   private async getEducationalContents(
     user: User,
   ): Promise<EducationalContent[]> {
-    try {
-      let content = await this.eduContentRepo.find({
-        where: { user: { id: user.id } },
-        // order: { createdAt: 'DESC' },
+    let content = await this.eduContentModel.find({ user: user._id });
+
+    if (!content.length) {
+      this.logger.log(
+        `No educational content found for user: ${user._id.toString()}. Generating.. please wait...`,
+      );
+
+      // Generate the content data
+      const newContentData = await this.aiService.generateEducationalContent(
+        user._id.toString(), // Convert ObjectId to string for the AI service
+      );
+
+      // Create and save the document using the model
+      const newContent = await this.eduContentModel.create({
+        ...newContentData,
+        user: user._id,
       });
 
-      if (!content.length) {
-        this.logger.log(
-          `No educational content found for user: ${user.id}. Generating.. please wait...`,
-        );
-        const newContent = await this.aiService.generateEducationalContent(
-          user.id,
-        );
-        content = [newContent];
-      }
-
-      return content;
-    } catch (error) {
-      this.logger.error(
-        `Error fetching educational content for user: ${user.id}`,
-        error,
-      );
-      throw error;
+      content = [newContent];
     }
+
+    return content;
   }
 
   private async getStudentsBadges(user: User): Promise<Badge[]> {
-    return this.badgeRepo.find({
-      where: { user: { id: user.id } },
-      order: { createdAt: 'DESC' },
-    });
+    return this.badgeModel.find({ user: user._id }).sort({ createdAt: -1 });
   }
 
   private async getStudentSummary(user: User): Promise<DashboardSummary> {
     const [badgeCount, completedQuizzes] = await Promise.all([
-      this.badgeRepo.count({ where: { user: { id: user.id } } }),
-      this.getCompletedQuizzesCount(user),
+      this.badgeModel.countDocuments({ user: user._id }),
+      this.quizModel.countDocuments({ user: user._id, completed: true }),
     ]);
-
     return {
       totalBadges: badgeCount,
-      completedQuizzes: completedQuizzes,
+      completedQuizzes,
     };
   }
 
   private async getMentorDashboardData(user: User): Promise<DashboardData> {
-    const [students, badges, showcases] = await Promise.all([
-      this.getMentoredStudents(user),
-      this.getBadges(user),
-      this.getProjectShowcases(user),
-      // this.getMentorAnalytics(user),
-    ]);
-
     return {
       success: true,
-      timestamp: new Date().toISOString(),
-      userId: user.id,
       message: 'Mentor dashboard data retrieved successfully',
-      students,
-      badges,
-      showcases,
-      // recentActivities: await this.getRecentActivities(user),
-      // notifications: await this.getMentorNotifications(user),
+      timestamp: new Date().toISOString(),
+      userId: (user as any)._id,
+      students: [],
+      badges: [],
+      showcases: [],
     };
   }
 
   private async getMentorSummary(user: User): Promise<DashboardSummary> {
-    const [studentCount, badgeCount, showcaseCount] = await Promise.all([
-      this.getMentoredStudentsCount(user),
-      this.badgeRepo.count({ where: { user: { id: user.id } } }),
-      this.projectShowcaseRepo.count({ where: { user: { id: user.id } } }),
-    ]);
-
     return {
-      totalStudents: studentCount,
-      totalBadges: badgeCount,
-      totalShowcases: showcaseCount,
-      // recentActivities: await this.getRecentActivityCount(user),
+      totalStudents: 0,
+      totalBadges: await this.badgeModel.countDocuments({ user: user._id }),
+      totalShowcases: await this.projectShowcaseModel.countDocuments({
+        user: user._id,
+      }),
     };
   }
 
   private async getParentDashboardData(user: User): Promise<DashboardData> {
-    const [children, badges, showcases] = await Promise.all([
-      this.getChildren(user),
-      this.getBadges(user),
-      this.getProjectShowcases(user),
-    ]);
-
     return {
       success: true,
       message: 'Parent dashboard data retrieved successfully',
       timestamp: new Date().toISOString(),
-      userId: user.id,
-      students: children,
-      badges,
-      showcases,
-      // recentActivities: await this.getChildrenActivity(user),
-      // notifications: await this.getParentNotifications(user),
+      userId: (user as any)._id,
+      students: [],
+      badges: [],
+      showcases: [],
     };
   }
 
   private async getParentSummary(user: User): Promise<DashboardSummary> {
-    const [childrenCount, badgeCount, showcaseCount] = await Promise.all([
-      this.getChildrenCount(user),
-      this.getChildrenBadgesCount(user),
-      this.getChildrenShowcasesCount(user),
-    ]);
-
     return {
-      totalStudents: childrenCount,
-      totalBadges: badgeCount,
-      totalShowcases: showcaseCount,
-      // recentActivities: await this.getChildrenActivityCount(user),
+      totalStudents: 0,
+      totalBadges: 0,
+      totalShowcases: 0,
     };
   }
 
   private async getSchoolAdminDashboardData(
     user: User,
   ): Promise<DashboardData> {
-    const [students, analytics, showcases, schools] = await Promise.all([
-      this.getSchoolStudents(user),
-      this.getSchoolAnalytics(user),
-      this.getSchoolShowcases(user),
-      this.schoolRepo.find({
-        where: { admin: { id: user.id } },
-        relations: ['admin'],
-      }),
-    ]);
-
     return {
       success: true,
       message: 'School admin dashboard data retrieved successfully',
       timestamp: new Date().toISOString(),
-      userId: user.id,
-      students,
-      analytics,
-      showcases,
-      schools,
-      // recentActivities: await this.getRecentActivities(user),
-      // notifications: await this.getSchoolNotifications(user),
+      userId: (user as any)._id,
+      students: [],
+      analytics: {},
+      showcases: [],
+      schools: await this.schoolModel
+        .find({ admin: user._id })
+        .populate('admin'),
     };
   }
 
   private async getSchoolAdminSummary(user: User): Promise<DashboardSummary> {
-    const [studentCount, badgeCount, showcaseCount] = await Promise.all([
-      this.getSchoolStudentsCount(user),
-      this.getSchoolBadgesCount(user),
-      this.getSchoolShowcasesCount(user),
-    ]);
-
     return {
-      totalStudents: studentCount,
-      totalBadges: badgeCount,
-      totalShowcases: showcaseCount,
-      // recentActivities: await this.getSchoolActivityCount(user),
+      totalStudents: 0,
+      totalBadges: 0,
+      totalShowcases: 0,
     };
-  }
-
-  private async getProjectShowcases(user: User): Promise<ProjectShowcase[]> {
-    if (
-      user.role === UserRole.MENTOR ||
-      user.role === UserRole.SCHOOL_ADMIN ||
-      user.role === UserRole.PARENT
-    ) {
-      return this.projectShowcaseRepo.find({
-        where: { user: { id: user.id } },
-      });
-    }
-  }
-
-  private async getCompletedQuizzesCount(user: User): Promise<number> {
-    return this.quizRepo.count({
-      where: { user: { id: user.id }, completed: true },
-    });
-  }
-
-  private async getChildren(user: User): Promise<User[]> {
-    return [];
-  }
-
-  private async getChildrenCount(user: User): Promise<any> {}
-
-  private async getMentoredStudents(user: User): Promise<User[]> {
-    return [];
-  }
-
-  private async getMentoredStudentsCount(user: User): Promise<any> {
-    return 0;
-  }
-  private async getBadges(user: User): Promise<Badge[]> {
-    return [];
-  }
-  private async getSchoolStudents(user: User): Promise<User[]> {
-    return [];
-  }
-  private async getSchoolStudentsCount(user: User): Promise<any> {
-    return 0;
-  }
-  private async getSchoolAnalytics(user: User): Promise<any> {
-    return {};
-  }
-  private async getSchoolShowcases(user: User): Promise<ProjectShowcase[]> {
-    return [];
-  }
-  private async getSchoolBadgesCount(user: User): Promise<any> {
-    return 0;
-  }
-  private async getSchoolShowcasesCount(user: User): Promise<any> {
-    return 0;
-  }
-  private async getChildrenBadgesCount(user: User): Promise<any> {
-    return 0;
-  }
-  private async getChildrenShowcasesCount(user: User): Promise<any> {
-    return 0;
   }
 }

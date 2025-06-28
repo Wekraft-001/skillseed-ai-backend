@@ -37,10 +37,11 @@ export class AuthService {
   async signin(firstName: string, password: string) {
     this.logger.setContext('AuthService');
 
-    const user = await this.userModel.findOne({ firstName })
-        .select('+password') // Explicitly include password field
-        .lean()
-        .exec();
+    const user = await this.userModel
+      .findOne({ firstName })
+      .select('+password') // Explicitly include password field
+      .lean()
+      .exec();
     if (!User) {
       this.logger.warn(`Invalid credentials for user: ${firstName}`);
       throw new UnauthorizedException('Invalid credentials');
@@ -58,7 +59,11 @@ export class AuthService {
     }
 
     this.logger.log(`User ${firstName} signed successfully`);
-    return this.login(user);
+    // return this.login(user);
+    return this.login({
+      ...user,
+      _id: user._id.toString(),
+    });
   }
 
   async login(user: {
@@ -84,8 +89,8 @@ export class AuthService {
         _id: user._id,
         firstName: user.firstName,
         email: user.email,
-        role: user.role
-      }
+        role: user.role,
+      },
     };
   }
 }

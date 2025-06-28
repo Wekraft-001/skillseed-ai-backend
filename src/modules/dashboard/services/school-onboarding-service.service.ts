@@ -1,9 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-// import { InjectRepository } from '@nestjs/typeorm';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model, Types } from 'mongoose';
 import { School, SchoolDocument } from '../../schemas/school.schema';
-// import { Repository } from 'typeorm';
 import { User, UserDocument } from '../../schemas';
 import { LoggerService } from 'src/common/logger/logger.service';
 import { PasswordService } from '.';

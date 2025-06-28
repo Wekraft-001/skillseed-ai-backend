@@ -1,34 +1,47 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, ManyToOne } from "typeorm";
-import { Badge } from "./badges.schema";
-import { User } from "./users/user.schema";
-import { UserRole } from "src/common/interfaces";
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Types } from 'mongoose';
+import { Badge } from './badges.schema';
+import { User } from './users/user.schema';
+import { UserRole } from 'src/common/interfaces';
 
-@Entity()
-export class ProjectShowcase {
-    @PrimaryGeneratedColumn()
-    id: number;
+// Embedded feedback schema
+@Schema({ _id: false })
+export class Feedback {
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  userId: Types.ObjectId;
 
-    @Column()
-    projectName: string;
+  @Prop({ enum: UserRole, required: true })
+  role: UserRole;
 
-    @Column()
-    description: string;
-    
+  @Prop({ required: true })
+  comment: string;
 
-    @OneToOne(() => Badge, badge => badge.showcase)
-    badge: Badge;
-
-    @ManyToOne(() => User, user => user.showcases)
-    user: User;
-
-    @Column({ type: 'jsonb', nullable: true })
-    feeback: Array<{
-        userId: number;
-        role: UserRole;
-        comment: string;
-        timestamp: Date;
-    }>
-
-    @Column()
-    imageUrl: string;
+  @Prop({ default: Date.now })
+  timestamp: Date;
 }
+
+const FeedbackSchema = SchemaFactory.createForClass(Feedback);
+
+@Schema({ timestamps: true })
+export class ProjectShowcase extends Document {
+  @Prop({ required: true })
+  projectName: string;
+
+  @Prop({ required: true })
+  description: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'Badge' })
+  badge: Types.ObjectId | Badge;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  user: Types.ObjectId | User;
+
+  @Prop({ type: [FeedbackSchema], default: [] })
+  feedback: Feedback[];
+
+  @Prop({ required: true })
+  imageUrl: string;
+}
+
+export const ProjectShowcaseSchema =
+  SchemaFactory.createForClass(ProjectShowcase);

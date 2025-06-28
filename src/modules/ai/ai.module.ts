@@ -1,18 +1,24 @@
-import { forwardRef, Module } from '@nestjs/common';
+// src/modules/ai/ai.module.ts
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
 import { AiService } from './ai.service';
-import { LoggerModule } from 'src/common/logger/logger.module';
-import { ConfigModule } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { CareerQuiz } from '../schemas/career-quiz.schema';
-import { UserModule } from '../users/user.module';
-import { EducationalContent } from '../schemas';
+import { LoggerModule } from '../../common/logger/logger.module';
+import { CareerQuiz, CareerQuizSchema } from '../schemas/career-quiz.schema';
+import {
+  EducationalContent,
+  EducationalContentSchema,
+  User,
+  UserSchema,
+} from '../schemas';
 
 @Module({
   imports: [
-    LoggerModule,
-    ConfigModule,
-    TypeOrmModule.forFeature([CareerQuiz, EducationalContent]),
-    forwardRef(() => UserModule),
+    LoggerModule, // 👈 This provides LoggerService
+    MongooseModule.forFeature([
+      { name: CareerQuiz.name, schema: CareerQuizSchema },
+      { name: EducationalContent.name, schema: EducationalContentSchema },
+      { name: User.name, schema: UserSchema },
+    ]),
   ],
   providers: [AiService],
   exports: [AiService],

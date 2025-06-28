@@ -65,7 +65,7 @@ export class DashboardController {
   )
   async getDashboard(@CurrentUser() user: User): Promise<DashboardData> {
     this.logger.log(
-      `Dashboard request from user: ${user.id} with role: ${user.role}`,
+      `Dashboard request from user: ${user._id} with role: ${user.role}`,
     );
 
     try {
@@ -76,11 +76,11 @@ export class DashboardController {
         message: 'Dashboard data retrieved successfully',
         timestamp: new Date().toISOString(),
         data: dashboardData,
-        userId: user.id,
+        userId: (user as any)._id,
       };
     } catch (error) {
       this.logger.error(
-        `Error retrieving dashboard data for user: ${user.id}`,
+        `Error retrieving dashboard data for user: ${user._id}`,
         error,
       );
       throw error;

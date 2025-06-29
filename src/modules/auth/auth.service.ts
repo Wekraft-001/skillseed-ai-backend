@@ -36,13 +36,16 @@ export class AuthService {
 
   async signin(firstName: string, password: string) {
     this.logger.setContext('AuthService');
+    // console.log('=== SIGNIN STARTED ===');
+    // console.log('Attempting signin for:', firstName);
 
     const user = await this.userModel
       .findOne({ firstName })
       .select('+password') // Explicitly include password field
       .lean()
       .exec();
-    if (!User) {
+
+    if (!user) {
       this.logger.warn(`Invalid credentials for user: ${firstName}`);
       throw new UnauthorizedException('Invalid credentials');
     }

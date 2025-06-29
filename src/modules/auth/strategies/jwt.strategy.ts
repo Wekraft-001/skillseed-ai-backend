@@ -14,20 +14,36 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: number; firstName: string; age: number; email: string; role?: UserRole}) {
-    console.log(`JWT validation payload: ${JSON.stringify(payload)}`);
+  async validate(payload: {
+    sub: number;
+    firstName: string;
+    age: number;
+    email: string;
+    role?: UserRole;
+  }) {
+    // console.log(`JWT validation payload: ${JSON.stringify(payload)}`);
+    // console.log('=== JWT VALIDATION STARTED ===');
+    // console.log('Payload received:', JSON.stringify(payload, null, 2));
+    // console.log('Payload sub type:', typeof payload.sub);
+    // console.log('Payload sub value:', payload.sub);
 
-
-    if (!payload.role) {
-        throw new UnauthorizedException('Missing role in the token payload');
+    if (!payload.sub) {
+      console.log('ERROR: Missing sub in payload');
+      throw new UnauthorizedException('Missing user ID in token');
     }
 
-    return {
-      id: payload.sub,
+    if (!payload.role) {
+      throw new UnauthorizedException('Missing role in the token payload');
+    }
+
+    const user = {
+      _id: payload.sub,
       firstName: payload.firstName,
       age: payload.age,
       email: payload.email,
       role: payload.role,
     };
+    console.log(`Returning user object: ${JSON.stringify(user)}`);
+    return user;
   }
 }

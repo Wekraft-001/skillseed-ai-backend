@@ -68,8 +68,8 @@ export class UserController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get('quiz')
-  async getQuiz(@Req() req) {
-    return this.aiService.generateCareerQuiz(req.user);
+  async getQuiz(@CurrentUser() user: User) {
+    return this.aiService.generateCareerQuiz(user);
   }
 
   @ApiOperation({ summary: 'Get all users' })

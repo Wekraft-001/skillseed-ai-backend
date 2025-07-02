@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
@@ -20,10 +20,22 @@ import { MongooseModule } from '@nestjs/mongoose';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      // envFilePath: process.env.NODE_ENV === 'production' ? '.env.development',
+      envFilePath: '.env',
+      validate: (config) => {
+        if(!config.MONGODB_URI) throw new Error('MONGODB_URI is not defined');
+        return config;
+      }
     }),
     LoggerModule,
-    MongooseModule.forRoot(process.env.MONGO_URI),
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGODB_URI'),
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      }),
+      inject: [ConfigService],
+    }),
     AuthModule,
     UserModule,
     AiModule,

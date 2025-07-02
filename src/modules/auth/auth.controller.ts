@@ -60,4 +60,8 @@ export class AuthController {
   sigin(@Body() body: LoginDto) {
     return this.authService.login(body);
   }
+  @Post('school/signin')
+  async schoolLogin(@Body() dto: LoginDto) {
+    return this.authService.schoolSignin(dto);
+  }
 }

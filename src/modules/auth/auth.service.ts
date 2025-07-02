@@ -8,7 +8,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { CreateAdminOrParentDto } from './dtos';
-import { User, UserDocument } from '../schemas';
+import { User, UserDocument, School } from '../schemas';
 import { JwtService } from '@nestjs/jwt';
 import { LoggerService } from 'src/common/logger/logger.service';
 import { UserRole } from 'src/common/interfaces';
@@ -18,6 +18,8 @@ export class AuthService {
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
+    @InjectModel(School.name)
+    private readonly schoolModel: Model<School>,
     private readonly jwtService: JwtService,
     private readonly logger: LoggerService,
   ) {
@@ -137,6 +139,52 @@ export class AuthService {
         email: user.email,
         firstName: user.firstName,
         role: user.role,
+      },
+    };
+  }
+
+  async schoolSignin(credentials: { email: string; password: string }) {
+    const { email, password } = credentials;
+
+    const school = await this.schoolModel
+      .findOne({ email })
+      .select('+password')
+      .lean();
+
+    if (!school) {
+      this.logger.warn(
+        `School login failed: No school found with email ${email}`,
+      );
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, school.password);
+    if (!isPasswordValid) {
+      this.logger.warn(`School login failed: Invalid password for ${email}`);
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (school.role !== UserRole.SCHOOL_ADMIN) {
+      this.logger.warn(`School login failed: Invalid role for ${email}`);
+      throw new UnauthorizedException('Unauthorized role');
+    }
+
+    const payload = {
+      sub: school._id,
+      email: school.email,
+      role: school.role,
+      name: school.schoolName,
+    };
+
+    this.logger.log(`School ${school.schoolName} logged in successfully`);
+
+    return {
+      access_token: this.jwtService.sign(payload),
+      school: {
+        _id: school._id,
+        email: school.email,
+        schoolName: school.schoolName,
+        role: school.role,
       },
     };
   }

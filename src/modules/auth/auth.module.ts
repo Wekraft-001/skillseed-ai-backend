@@ -7,7 +7,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { LoggerModule } from 'src/common/logger/logger.module';
-import { User, UserSchema } from '../schemas';
+import { School, SchoolSchema, User, UserSchema } from '../schemas';
 
 @Module({
   imports: [
@@ -22,7 +22,10 @@ import { User, UserSchema } from '../schemas';
       }),
       inject: [ConfigService],
     }),
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
+      { name: School.name, schema: SchoolSchema },
+    ]),
     LoggerModule,
   ],
   controllers: [AuthController],

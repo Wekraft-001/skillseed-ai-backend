@@ -1,24 +1,22 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { SchoolController } from '../controllers';
-import {
-  EmailService,
-  PasswordService,
-  SchoolOnboardingService,
-} from '../services';
+import { PasswordService, SchoolOnboardingService } from '../services';
 import { LoggerModule } from '../../../common/logger/logger.module';
 import { School, SchoolSchema, User, UserSchema } from '../../schemas';
+import { EmailModule } from 'src/common/utils/mailing/email.module';
 
 @Module({
   imports: [
+    EmailModule,
     LoggerModule,
     MongooseModule.forFeature([
       { name: School.name, schema: SchoolSchema },
-      { name: User.name, schema: UserSchema },
+      // { name: User.name, schema: UserSchema },
     ]),
   ],
   controllers: [SchoolController],
-  providers: [SchoolOnboardingService, PasswordService, EmailService],
+  providers: [SchoolOnboardingService, PasswordService],
   // exports: []
 })
 export class SchoolModule {}

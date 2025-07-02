@@ -1,24 +1,35 @@
-import { IsString, IsNotEmpty, IsEmail, MaxLength, IsNumber } from "class-validator";
+import { IsString, IsNotEmpty, IsEmail } from 'class-validator';
 
 export class CreateSchoolDto {
-    @IsString()
-    @IsNotEmpty()
-    @MaxLength(100)
-    schoolName: string;
+  @IsString()
+  @IsNotEmpty()
+  schoolName: string;
 
-    @IsEmail()
-    @IsNotEmpty()
-    email: string;
+  @IsString()
+  @IsNotEmpty()
+  schoolType: string;
 
-    @IsString()
-    @IsNotEmpty()
-    address: string;
+  @IsString()
+  @IsNotEmpty()
+  schoolContactPerson: string;
 
-    @IsString()
-    @IsNotEmpty()
-    logoUrl: string;
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
 
-    @IsNumber()
-    @IsNotEmpty()
-    phoneNumber: number;
+  @IsString()
+  @IsNotEmpty()
+  phoneNumber: string;
+
+  @IsString()
+  @IsNotEmpty()
+  address: string;
+
+  @IsString()
+  @IsNotEmpty()
+  city: string;
+
+  @IsString()
+  @IsNotEmpty()
+  country: string;
 }

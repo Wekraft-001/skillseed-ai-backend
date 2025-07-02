@@ -2,7 +2,7 @@
 
 ``Base URL``
 
-http://localhost:3000/api
+http://localhost:5500/api
 
 Authentication
 Most endpoints require a Bearer token in the Authorization header. Example:

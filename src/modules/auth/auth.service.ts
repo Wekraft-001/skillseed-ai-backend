@@ -1,8 +1,13 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import { CreateUserDto } from './dtos';
+import { CreateAdminOrParentDto } from './dtos';
 import { User, UserDocument } from '../schemas';
 import { JwtService } from '@nestjs/jwt';
 import { LoggerService } from 'src/common/logger/logger.service';
@@ -15,15 +20,28 @@ export class AuthService {
     private readonly userModel: Model<UserDocument>,
     private readonly jwtService: JwtService,
     private readonly logger: LoggerService,
-  ) {}
+  ) {
+    this.logger.setContext(AuthService.name);
+  }
 
-  async registerUser(createUserDto: CreateUserDto) {
+  async registerAdminOrParent(createDto: CreateAdminOrParentDto) {
+    if (![UserRole.SUPER_ADMIN, UserRole.PARENT].includes(createDto.role)) {
+      throw new BadRequestException(
+        'Only SUPER_ADMIN or PARENT can self-register',
+      );
+    }
+
+    const existing = await this.userModel.findOne({ email: createDto.email });
+    if (existing) {
+      throw new ConflictException('Email already in use');
+    }
+
     try {
-      const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+      const hashedPassword = await bcrypt.hash(createDto.password, 10);
       const newUser = new this.userModel({
-        ...createUserDto,
+        ...createDto,
         password: hashedPassword,
-        role: createUserDto.role || UserRole.STUDENT,
+        // role: createDto.role || UserRole.STUDENT,
       });
       const savedUser = await newUser.save();
 
@@ -34,42 +52,40 @@ export class AuthService {
     }
   }
 
-  async signin(firstName: string, password: string) {
-    this.logger.setContext('AuthService');
-    // console.log('=== SIGNIN STARTED ===');
-    // console.log('Attempting signin for:', firstName);
+  // async signin(firstName: string, password: string) {
+  //   this.logger.setContext('AuthService');
 
-    const user = await this.userModel
-      .findOne({ firstName })
-      .select('+password') // Explicitly include password field
-      .lean()
-      .exec();
+  //   const user = await this.userModel
+  //     .findOne({ firstName })
+  //     .select('+password') // Explicitly include password field
+  //     .lean()
+  //     .exec();
 
-    if (!user) {
-      this.logger.warn(`Invalid credentials for user: ${firstName}`);
-      throw new UnauthorizedException('Invalid credentials');
-    }
+  //   if (!user) {
+  //     this.logger.warn(`Invalid credentials for user: ${firstName}`);
+  //     throw new UnauthorizedException('Invalid credentials');
+  //   }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      this.logger.warn(`Invalid password attempt for user ${firstName}`);
-      throw new UnauthorizedException('Invalid credentials: password');
-    }
+  //   const isPasswordValid = await bcrypt.compare(password, user.password);
+  //   if (!isPasswordValid) {
+  //     this.logger.warn(`Invalid password attempt for user ${firstName}`);
+  //     throw new UnauthorizedException('Invalid credentials: password');
+  //   }
 
-    if (!user.role) {
-      this.logger.warn(`User ${firstName} does not have a role assigned`);
-      throw new UnauthorizedException('User has not role assigned');
-    }
+  //   if (!user.role) {
+  //     this.logger.warn(`User ${firstName} does not have a role assigned`);
+  //     throw new UnauthorizedException('User has not role assigned');
+  //   }
 
-    this.logger.log(`User ${firstName} signed successfully`);
-    // return this.login(user);
-    return this.login({
-      ...user,
-      _id: user._id.toString(),
-    });
-  }
+  //   this.logger.log(`User ${firstName} signed successfully`);
+  //   // return this.login(user);
+  //   return this.login({
+  //     ...user,
+  //     _id: user._id.toString(),
+  //   });
+  // }
 
-  async login(user: {
+  async login1(user: {
     _id: string;
     firstName: string;
     age: number;
@@ -92,6 +108,34 @@ export class AuthService {
         _id: user._id,
         firstName: user.firstName,
         email: user.email,
+        role: user.role,
+      },
+    };
+  }
+
+  async login(credentials: { email: string; password: string }) {
+    const user = await this.userModel
+      .findOne({ email: credentials.email })
+      .select('+password')
+      .lean();
+
+    if (!user || !(await bcrypt.compare(credentials.password, user.password))) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const payload = {
+      sub: user._id,
+      role: user.role,
+      email: user.email,
+      firstName: user.firstName,
+    };
+
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: {
+        _id: user._id,
+        email: user.email,
+        firstName: user.firstName,
         role: user.role,
       },
     };

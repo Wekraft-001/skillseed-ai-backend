@@ -1,4 +1,4 @@
-## Creating a student
+## Register an admin or a parent
 
 POST http://localhost:3000/api/auth/register
 Content-Type: application/json
@@ -7,8 +7,34 @@ Content-Type: application/json
     "firstName":"Yannick",
     "lastName":"Zahinda",
     "email":"yannick@gmail.test",
-    "age":100,
+    "phoneNumber":100,
     "role":"super_admin",
+    "password":"123456"
+}
+
+## Creating a student (child)
+
+POST http://localhost:3000/api/auth/
+Content-Type: application/json
+
+{
+    "firstName":"Yannick",
+    "lastName":"Zahinda",
+    "email":"yannick@gmail.test",
+    "age":100,
+    "grade":8,
+    "role":"super_admin",
+    "password":"123456"
+    picture:{}
+}
+
+### Signin a parent / admin
+
+POST http://localhost:3000/api/auth/signin
+Content-Type: application/json
+
+{
+    "email":"Yannick",
     "password":"123456"
 }
 

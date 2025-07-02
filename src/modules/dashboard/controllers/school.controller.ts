@@ -6,9 +6,17 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiConsumes,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateSchoolDto, UserRole } from 'src/common/interfaces';
 import { SchoolOnboardingService } from '../services';
 import { School } from 'src/modules/schemas/school.schema';
@@ -18,6 +26,7 @@ import { RolesGuard } from 'src/modules/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { CurrentUser } from 'src/common/decorators';
 import { LoggerService } from 'src/common/logger/logger.service';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('schools')
 @ApiTags('School')
@@ -28,9 +37,16 @@ export class SchoolController {
   ) {}
 
   @Post('onboard')
+  @UseInterceptors(FileInterceptor('logo'))
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.SUPER_ADMIN)
   @ApiTags('Onboarding')
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Onboard a new school with admin user',
+    description:
+      'This endpoint allows the super admin to onboard a new school.',
+  })
   @ApiResponse({
     status: 201,
     description: 'School onboarded successfully',
@@ -55,22 +71,29 @@ export class SchoolController {
       'This endpoint allows the super admin to onboard a new school.',
   })
   async onboardSchool(
+    @UploadedFile() logo: Express.Multer.File,
     @Body() createSchoolDto: CreateSchoolDto,
     @CurrentUser() superAdmin: User,
-  ): Promise<{ school: School; admin: User }> {
-    try {
-      this.logger.log(
-        `School onboarding initiated by ${superAdmin.email} for school: ${createSchoolDto.schoolName}`,
-      );
+  ): Promise<School> {
+    // try {
+    //   this.logger.log(
+    //     `School onboarding initiated by ${superAdmin.email} for school: ${createSchoolDto.schoolName}`,
+    //   );
 
-      return this.schoolOnboardingService.onboardSchool(
-        createSchoolDto,
-        superAdmin,
-      );
-    } catch (error) {
-      this.logger.error('Error onboarding school', error);
-      throw error;
-    }
+    //   return this.schoolOnboardingService.onboardSchool(
+    //     createSchoolDto,
+    //     superAdmin,
+    //     logo,
+    //   );
+    // } catch (error) {
+    //   this.logger.error('Error onboarding school', error);
+    //   throw error;
+    // }
+    return this.schoolOnboardingService.onboardSchool(
+      createSchoolDto,
+      superAdmin,
+      logo,
+    );
   }
 
   @Get('/all')
@@ -135,7 +158,7 @@ export class SchoolController {
   })
   async deleteSchool(
     @CurrentUser() superAdmin: User,
-    @Param('id', ParseIntPipe) schoolId: number,
+    @Param('id') schoolId: string,
   ): Promise<void> {
     try {
       this.logger.log(
@@ -143,7 +166,10 @@ export class SchoolController {
       );
       await this.schoolOnboardingService.deleteSchool(schoolId);
     } catch (error) {
-      this.logger.error(`Error deleting school with ID: ${schoolId}`, error.stack);
+      this.logger.error(
+        `Error deleting school with ID: ${schoolId}`,
+        error.stack,
+      );
       throw error;
     }
   }

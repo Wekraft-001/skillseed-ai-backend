@@ -127,7 +127,7 @@ export class SchoolOnboardingService {
         country: createSchoolDto.country,
         logoUrl,
         password: hashedPassword,
-        role: UserRole.SCHOOL_ADMIN, // use your enum if defined
+        role: UserRole.SCHOOL_ADMIN,
         createdBy: superAdmin._id,
       });
 

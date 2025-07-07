@@ -7,7 +7,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import { CreateAdminOrParentDto } from './dtos';
+import { CreateAdminOrParentDto, CreateStudentDto } from './dtos';
 import { User, UserDocument, School } from '../schemas';
 import { JwtService } from '@nestjs/jwt';
 import { LoggerService } from 'src/common/logger/logger.service';
@@ -47,6 +47,41 @@ export class AuthService {
       });
       const savedUser = await newUser.save();
 
+      return savedUser.toObject();
+    } catch (error) {
+      this.logger.error('Error registering user', error);
+      throw error;
+    }
+  }
+
+  async registerStudent(
+    createStudentDto: CreateStudentDto,
+    currentUser: User,
+  ) {
+    if (
+      ![UserRole.PARENT, UserRole.SCHOOL_ADMIN].includes(currentUser.role)
+    ) {
+      throw new BadRequestException(
+        'Only School Admin or Parent can add student',
+      );
+    }
+
+    const existingStudent = await this.userModel.findOne({
+      email: createStudentDto.email,
+    });
+    if (existingStudent) {
+      throw new ConflictException('Email already in use');
+    }
+
+    try {
+      const hashedPassword = await bcrypt.hash(createStudentDto.password, 10);
+      const newUser = new this.userModel({
+        ...createStudentDto,
+        password: hashedPassword,
+        createdBy: currentUser._id
+      });
+
+      const savedUser = await newUser.save();
       return savedUser.toObject();
     } catch (error) {
       this.logger.error('Error registering user', error);

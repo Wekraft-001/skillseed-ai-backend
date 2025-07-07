@@ -1,6 +1,7 @@
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { UserRole } from 'src/common/interfaces';
+import { School } from '../school.schema';
 
 export type UserDocument = User &
   Document & {
@@ -8,7 +9,7 @@ export type UserDocument = User &
     school: Types.ObjectId;
   };
 
-@Schema({ timestamps: true, collection: 'users' })
+@Schema({ timestamps: true, collection: 'users', autoIndex: true })
 export class User extends Document {
   _id: Types.ObjectId;
 
@@ -38,7 +39,10 @@ export class User extends Document {
   deletedAt: Date;
 
   @Prop({ type: Types.ObjectId, ref: 'School' })
-  school: Types.ObjectId;
+  school: School;
+
+  @Prop({type: Types.ObjectId, ref: 'User'})
+  createdBy?: User;
 
   quizzes?: Types.ObjectId[];
   badges: Types.ObjectId[];

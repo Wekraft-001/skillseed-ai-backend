@@ -42,7 +42,8 @@
 
 // school.schema.ts
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
+import { User } from './users/user.schema';
 
 @Schema({ timestamps: true })
 export class School extends Document {
@@ -71,10 +72,19 @@ export class School extends Document {
   logoUrl?: string;
 
   @Prop()
-  role?: string; // Optional if you want to track 'school_admin'
+  role?: string;
 
   @Prop()
   password?: string;
+
+  @Prop({type: Types.ObjectId, ref: 'User'})
+  users: User[];
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  superAdmin: User; 
+
+  @Prop({type: Types.ObjectId, ref: 'User'})
+  createdBy?: User;
 }
 
 export const SchoolSchema = SchemaFactory.createForClass(School);

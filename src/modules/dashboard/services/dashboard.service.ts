@@ -107,12 +107,43 @@ export class DashboardService {
   }
 
   private async getSuperAdminDashboardData(user: User): Promise<DashboardData> {
-    const schools = await this.schoolModel
-      .find({ deletedAt: null })
-      .populate(['users', 'admin', 'superAdmin']);
-    const students = await this.userModel
-      .find({ role: UserRole.STUDENT })
-      .populate('school');
+    // const schools = await this.schoolModel
+    //   .find({ deletedAt: null })
+    //   .populate(['users', 'superAdmin', 'createdBy']);
+    // const students = await this.userModel
+    //   .find({ role: UserRole.STUDENT })
+    //   .populate(['school']);
+
+    const [schools, students] = await Promise.all([
+      this.schoolModel.find({deletedAt: null}).populate([
+        {
+          path: 'superAdmin',
+          select: 'firstName lastName email role'
+        },
+        {
+          path: 'createdBy',
+          select: 'firstName lastName email role'
+        },
+        {
+          path: 'users',
+          match: {deletedAt: null},
+          select: 'firstName lastName role email'
+        }
+      ]).lean(),
+      this.userModel.find({
+        role: UserRole.STUDENT,
+        deletedAt: null
+      }).populate([
+        {
+          path: 'school',
+          select: 'SchoolName email logoUrl'
+        },
+        {
+          path: 'createdBy',
+          select: 'firstName lastName email role'
+        }
+      ]).lean()
+    ])
 
     return {
       success: true,

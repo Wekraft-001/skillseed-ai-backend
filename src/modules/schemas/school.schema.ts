@@ -11,6 +11,9 @@ export class School extends Document {
   schoolType: string;
 
   @Prop()
+  schoolContactPerson: string;
+
+  @Prop()
   email: string;
 
   @Prop()
@@ -34,13 +37,13 @@ export class School extends Document {
   @Prop()
   password?: string;
 
-  @Prop({type: [{type: Types.ObjectId, ref: 'User'}]})
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }] })
   users: User[];
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
-  superAdmin: User; 
+  superAdmin: User;
 
-  @Prop({ type: Types.ObjectId, ref: 'User'})
+  @Prop({ type: Types.ObjectId, ref: 'User' })
   createdBy?: User;
 
   @Prop({ default: null })

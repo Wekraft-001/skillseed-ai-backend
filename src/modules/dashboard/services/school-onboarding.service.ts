@@ -14,85 +14,10 @@ export class SchoolOnboardingService {
   constructor(
     @InjectModel(School.name)
     private readonly schoolModel: Model<School>,
-    // @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     private readonly logger: LoggerService,
     private readonly passwordService: PasswordService,
     private readonly emailService: EmailService,
   ) {}
-
-  // async onboardSchool1(
-  //   createSchoolDto: CreateSchoolDto,
-  //   superAdmin: User,
-  //   logoFile?: Express.Multer.File,
-  // ): Promise<User> {
-  //   const session: ClientSession = await this.schoolModel.db.startSession();
-  //   // const queryRunner = this.schoolRepo.manager.connection.createQueryRunner();
-
-  //   try {
-  //     session.startTransaction();
-
-  //     const username = this.generateUsername(createSchoolDto.schoolName);
-  //     const tempPassword = this.passwordService.generateRandomPassword();
-  //     const hashedPassword =
-  //       await this.passwordService.hashPassword(tempPassword);
-
-  //     // Upload logo if present
-  //     let logoUrl = '';
-  //     if (logoFile) {
-  //       logoUrl = await uploadToAzureStorage(logoFile);
-  //     }
-
-  //     // const adminUser = new this.userModel({
-  //     //   firstName: 'Admin',
-  //     //   lastName: createSchoolDto.schoolName,
-  //     //   email: createSchoolDto.email,
-  //     //   password: hashedPassword,
-  //     //   role: UserRole.SCHOOL_ADMIN,
-  //     // });
-
-  //     // await adminUser.save({ session });
-
-  //     const schoolUser = new this.schoolModel({
-  //       schoolName: createSchoolDto.schoolName,
-  //       schoolType: createSchoolDto.schoolType,
-  //       schoolContactPerson: createSchoolDto.schoolContactPerson,
-  //       email: createSchoolDto.email,
-  //       phoneNumber: createSchoolDto.phoneNumber,
-  //       address: createSchoolDto.address,
-  //       city: createSchoolDto.city,
-  //       country: createSchoolDto.country,
-  //       logoUrl,
-  //       role: UserRole.SCHOOL_ADMIN,
-  //       password: hashedPassword,
-  //     });
-
-  //     await schoolUser.save({ session });
-
-  //     // updating admin user with school reference
-  //     // adminUser.school = school._id as Types.ObjectId;
-  //     // await adminUser.save({ session: session });
-  //     await session.commitTransaction();
-
-  //     // Send email
-  //     await this.emailService.sendSchoolOnboardingEmail(
-  //       createSchoolDto.email,
-  //       tempPassword,
-  //     );
-
-  //     // const populatedSchool = await this.schoolModel
-  //     //   .findById(school._id)
-  //     //   .populate('admin superAdmin')
-  //     //   .exec();
-
-  //     return schoolUser;
-  //   } catch (error) {
-  //     await session.abortTransaction();
-  //     this.logger.error('Error during school onboarding', error);
-  //     throw error;
-  //   } finally {
-  //     session.endSession();
-  //   }
-  // }
 
   async onboardSchool(
     createSchoolDto: CreateSchoolDto,
@@ -109,7 +34,7 @@ export class SchoolOnboardingService {
       const hashedPassword =
         await this.passwordService.hashPassword(tempPassword);
 
-      // Upload logo to Azure if available
+      // Upload logo to Azure
       let logoUrl = '';
       if (logoFile) {
         logoUrl = await uploadToAzureStorage(logoFile);
@@ -119,6 +44,7 @@ export class SchoolOnboardingService {
       const newSchool = new this.schoolModel({
         schoolName: createSchoolDto.schoolName,
         schoolType: createSchoolDto.schoolType,
+        schoolContactPerson: createSchoolDto.schoolContactPerson,
         email: createSchoolDto.email,
         phoneNumber: createSchoolDto.phoneNumber,
         address: createSchoolDto.address,
@@ -127,7 +53,7 @@ export class SchoolOnboardingService {
         logoUrl,
         password: hashedPassword,
         role: UserRole.SCHOOL_ADMIN,
-        createdBy: superAdmin._id,
+        createdBy: superAdmin.firstName,
       });
 
       await newSchool.save({ session });

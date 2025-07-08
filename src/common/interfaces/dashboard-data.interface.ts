@@ -20,6 +20,10 @@ export interface DashboardData {
     // notifications?: any[];
 }
 
+export interface SuperAdminDashboardResponse {
+
+}
+
 export interface DashboardSummary {
     totalStudents?: number;
     totalBadges?: number;
@@ -28,4 +32,5 @@ export interface DashboardSummary {
     totalShowcases?: number;
     completedQuizzes?: number;
     recentActivities?: number;
+    // user: User[]
 }

@@ -38,8 +38,8 @@ export class User extends Document {
   @Prop({ default: null })
   deletedAt: Date;
 
-  @Prop({ type: Types.ObjectId, ref: 'School' })
-  school: School;
+  @Prop({ type: Types.ObjectId, ref: 'School', default: null })
+  school: School[];
 
   @Prop({type: Types.ObjectId, ref: 'User'})
   createdBy?: User;

@@ -29,8 +29,8 @@ export class CreateStudentDto {
   @IsString()
   lastName: string;
 
-  @IsEmail()
-  email: string;
+  // @IsEmail()
+  // email: string;
 
   @IsNumber()
   age: number;

@@ -37,10 +37,10 @@ export class School extends Document {
   @Prop({type: [{type: Types.ObjectId, ref: 'User'}]})
   users: User[];
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null })
   superAdmin: User; 
 
-  @Prop({ type: Types.ObjectId, ref: 'User'})
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null})
   createdBy?: User;
 
   @Prop({ default: null })

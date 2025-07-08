@@ -10,6 +10,10 @@ export class UserService {
   ) {}
 
   async findAllUsers(): Promise<User[]> {
-    return this.userModel.find().exec();
+    return this.userModel
+      .find()
+      .populate('school')
+      .populate('createdBy')
+      .exec();
   }
 }

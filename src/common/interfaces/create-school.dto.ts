@@ -30,8 +30,8 @@ export class CreateSchoolDto {
   @IsNotEmpty()
   phoneNumber: string;
 
-  @IsString()
-  logoUrl: string;
+  // @IsString()
+  // logoUrl: string;
 
   @IsString()
   role?: UserRole;

@@ -66,19 +66,19 @@ export class AuthService {
       );
     }
 
-    const existingStudent = await this.userModel.findOne({
-      email: createStudentDto.email,
-    });
-    if (existingStudent) {
-      throw new ConflictException('Email already in use');
-    }
+    // const existingStudent = await this.userModel.findOne({
+    //   email: createStudentDto.email,
+    // });
+    // if (existingStudent) {
+    //   throw new ConflictException('Email already in use');
+    // }
 
     try {
       const hashedPassword = await bcrypt.hash(createStudentDto.password, 10);
       const newUser = new this.userModel({
         ...createStudentDto,
         password: hashedPassword,
-        createdBy: currentUser._id
+        createdBy: currentUser
       });
 
       const savedUser = await newUser.save();
@@ -122,7 +122,7 @@ export class AuthService {
   //   });
   // }
 
-  async login1(user: {
+  async childLogin(user: {
     _id: string;
     firstName: string;
     age: number;

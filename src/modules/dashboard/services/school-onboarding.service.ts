@@ -127,7 +127,7 @@ export class SchoolOnboardingService {
         logoUrl,
         password: hashedPassword,
         role: UserRole.SCHOOL_ADMIN,
-        createdBy: superAdmin._id,
+        createdBy: superAdmin,
       });
 
       await newSchool.save({ session });
@@ -158,7 +158,7 @@ export class SchoolOnboardingService {
     try {
       return await this.schoolModel
         .find({ role: UserRole.SCHOOL_ADMIN, deletedAt: null })
-        // .populate('admin superAdmin users')
+        .populate('superAdmin users createdBy')
         .sort({ createdAt: -1 })
         .exec();
     } catch (error) {

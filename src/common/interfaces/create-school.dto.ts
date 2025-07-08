@@ -1,4 +1,5 @@
 import { IsString, IsNotEmpty, IsEmail } from 'class-validator';
+import { UserRole } from './user-role.enum';
 
 export class CreateSchoolDto {
   @IsString()
@@ -9,17 +10,9 @@ export class CreateSchoolDto {
   @IsNotEmpty()
   schoolType: string;
 
-  @IsString()
-  @IsNotEmpty()
-  schoolContactPerson: string;
-
   @IsEmail()
   @IsNotEmpty()
   email: string;
-
-  @IsString()
-  @IsNotEmpty()
-  phoneNumber: string;
 
   @IsString()
   @IsNotEmpty()
@@ -32,4 +25,18 @@ export class CreateSchoolDto {
   @IsString()
   @IsNotEmpty()
   country: string;
+
+  @IsString()
+  @IsNotEmpty()
+  phoneNumber: string;
+
+  @IsString()
+  logoUrl: string;
+
+  @IsString()
+  role?: UserRole;
+
+  @IsString()
+  @IsNotEmpty()
+  password: string;
 }

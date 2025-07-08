@@ -32,7 +32,7 @@ export class DashboardController {
     private readonly logger: LoggerService,
   ) {}
 
-  @Get('/get-data')
+  @Get('get-data')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiTags('Dashboard')

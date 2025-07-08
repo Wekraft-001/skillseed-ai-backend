@@ -72,6 +72,7 @@ export class UserController {
     return this.aiService.generateCareerQuiz(req.user);
   }
 
+
   @ApiOperation({ summary: 'Get all users' })
   @ApiResponse({ status: 200, description: 'All users retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -90,6 +91,8 @@ export class UserController {
   async getAllUsers() {
     return this.userServices.findAllUsers();
   }
+
+
 
   @ApiTags('Quizzes')
   @ApiBearerAuth()
@@ -120,6 +123,8 @@ export class UserController {
     return this.aiService.getAllQuizzes();
   }
 
+
+
   @ApiTags('Submit answers')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Submit quiz answers' })
@@ -147,6 +152,7 @@ export class UserController {
     }
     return this.aiService.submitAnswers(answersDto, (user as any)._id);
   }
+
 
   @ApiTags('Generate profile outcome')
   @ApiBearerAuth()
@@ -182,6 +188,7 @@ export class UserController {
 
     return this.aiService.generateProfileOutcome(dto, (user as any).id);
   }
+  
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Post('/gen-educ-content')

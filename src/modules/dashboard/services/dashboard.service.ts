@@ -47,7 +47,7 @@ export class DashboardService {
   async getDashboardData(user: User): Promise<{
     data: DashboardData;
     summary: DashboardSummary;
-    role: UserRole;
+    currentUser: User;
   }> {
     try {
       this.logger.log(
@@ -95,7 +95,7 @@ export class DashboardService {
           userId: (user as any)._id,
         },
         summary,
-        role: user.role,
+        currentUser: user
       };
     } catch (error) {
       this.logger.error(
@@ -107,13 +107,22 @@ export class DashboardService {
   }
 
   private async getSuperAdminDashboardData(user: User): Promise<DashboardData> {
-    const schools = await this.schoolModel
-      .find({ deletedAt: null })
-      .populate(['users', 'admin', 'superAdmin']);
-    const students = await this.userModel
-      .find({ role: UserRole.STUDENT })
-      .populate('school');
-
+    const [schools, students] = await Promise.all([
+      this.schoolModel
+        .find({ deletedAt: null })
+        .populate('superAdmin', 'firstName lastName email role')
+        .populate('createdBy', 'firstName lastName email role')
+        .lean(),
+      this.userModel
+        .find({
+          role: UserRole.STUDENT,
+          deletedAt: null,
+        })
+        .populate('school', 'schoolName email logoUrl')
+        .populate('createdBy', 'firstName lastName email role')
+        .lean(),
+    ]);
+   
     return {
       success: true,
       message: 'Super admin dashboard data retrieved successfully',
@@ -123,7 +132,7 @@ export class DashboardService {
       students,
       analytics: {
         totalSchools: schools.length,
-        totalStudents: students.length,
+        totalStudents: students.length
       },
     };
   }
@@ -134,6 +143,7 @@ export class DashboardService {
     return {
       totalSchools: schoolCount,
       totalUsers: userCount,
+      // user: user as any,
     };
   }
 
@@ -150,6 +160,7 @@ export class DashboardService {
       userId: (user as any)._id,
       educationalContents,
       badges,
+
     };
   }
 

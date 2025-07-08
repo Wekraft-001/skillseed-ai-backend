@@ -119,7 +119,6 @@ export class SchoolOnboardingService {
       const newSchool = new this.schoolModel({
         schoolName: createSchoolDto.schoolName,
         schoolType: createSchoolDto.schoolType,
-        schoolContactPerson: createSchoolDto.schoolContactPerson,
         email: createSchoolDto.email,
         phoneNumber: createSchoolDto.phoneNumber,
         address: createSchoolDto.address,

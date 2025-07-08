@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
@@ -15,19 +15,34 @@ import { UserModule } from './modules/users/user.module';
 import { AiModule } from './modules/ai/ai.module';
 import { SchoolModule } from './modules/dashboard/modules/school.module';
 import { MongooseModule } from '@nestjs/mongoose';
+import { DashboardModule } from './modules/dashboard/modules/dashboard.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: '.env',
+      validate: (config) => {
+        if(!config.MONGO_URI) throw new Error('MONGO_URI is not defined');
+        return config;
+      }
       // envFilePath: process.env.NODE_ENV === 'production' ? '.env.development',
     }),
     LoggerModule,
-    MongooseModule.forRoot(process.env.MONGO_URI),
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (ConfigService: ConfigService) => ({
+        uri: ConfigService.get<string>('MONGO_URI'),
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      }),
+      inject: [ConfigService],
+    }),
     AuthModule,
     UserModule,
     AiModule,
     SchoolModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

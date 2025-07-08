@@ -5,13 +5,15 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { ClientSession, Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { CreateAdminOrParentDto, CreateStudentDto } from './dtos';
 import { User, UserDocument, School } from '../schemas';
 import { JwtService } from '@nestjs/jwt';
 import { LoggerService } from 'src/common/logger/logger.service';
 import { UserRole } from 'src/common/interfaces';
+import { uploadToAzureStorage } from 'src/common/utils/azure-upload.util';
+import { create } from 'domain';
 
 @Injectable()
 export class AuthService {
@@ -57,35 +59,55 @@ export class AuthService {
   async registerStudent(
     createStudentDto: CreateStudentDto,
     currentUser: User,
+    image?: Express.Multer.File,
   ) {
-    if (
-      ![UserRole.PARENT, UserRole.SCHOOL_ADMIN].includes(currentUser.role)
-    ) {
+    if (![UserRole.PARENT, UserRole.SCHOOL_ADMIN].includes(currentUser.role)) {
       throw new BadRequestException(
         'Only School Admin or Parent can add student',
       );
     }
 
-    const existingStudent = await this.userModel.findOne({
-      email: createStudentDto.email,
-    });
-    if (existingStudent) {
-      throw new ConflictException('Email already in use');
-    }
+    const session: ClientSession = await this.userModel.db.startSession();
 
     try {
+      session.startTransaction();
+
       const hashedPassword = await bcrypt.hash(createStudentDto.password, 10);
+
+      let imageUrl = '';
+      if (image) {
+        imageUrl = await uploadToAzureStorage(image);
+      }
       const newUser = new this.userModel({
-        ...createStudentDto,
+        firstName: createStudentDto.firstName,
+        lastName: createStudentDto.lastName,
+        age: createStudentDto.age,
+        grade: createStudentDto.age,
+        imageUrl,
+        role: createStudentDto.role,
         password: hashedPassword,
-        createdBy: currentUser._id
+        createdBy: currentUser._id,
+        school: currentUser.school,
       });
 
-      const savedUser = await newUser.save();
-      return savedUser.toObject();
+      await newUser.save({ session });
+      await session.commitTransaction();
+
+      const populatedStudent = await this.userModel
+        .findById(newUser._id)
+        .populate('createdBy school')
+        .exec();
+
+      this.logger.log(
+        `Student registered: ${newUser.firstName} ${newUser.lastName} by ${currentUser.firstName}`,
+      );
+
+      return populatedStudent;
     } catch (error) {
-      this.logger.error('Error registering user', error);
+      this.logger.error('Error registering student', error);
       throw error;
+    } finally {
+      session.endSession();
     }
   }
 

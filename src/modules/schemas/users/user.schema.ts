@@ -28,9 +28,15 @@ export class User extends Document {
   role: UserRole;
 
   @Prop({ required: false })
+  image?: string;
+
+  @Prop({ required: false })
+  grade?: string;
+
+  @Prop({ required: false })
   age: number;
 
-  @Prop({ unique: true, required: true, lowercase: true, trim: true })
+  @Prop({ unique: true, lowercase: true, trim: true })
   email: string;
 
   @Prop({ required: true, minlength: 6 })

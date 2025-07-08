@@ -75,20 +75,7 @@ export class SchoolController {
     @Body() createSchoolDto: CreateSchoolDto,
     @CurrentUser() superAdmin: User,
   ): Promise<School> {
-    // try {
-    //   this.logger.log(
-    //     `School onboarding initiated by ${superAdmin.email} for school: ${createSchoolDto.schoolName}`,
-    //   );
 
-    //   return this.schoolOnboardingService.onboardSchool(
-    //     createSchoolDto,
-    //     superAdmin,
-    //     logo,
-    //   );
-    // } catch (error) {
-    //   this.logger.error('Error onboarding school', error);
-    //   throw error;
-    // }
     return this.schoolOnboardingService.onboardSchool(
       createSchoolDto,
       superAdmin,

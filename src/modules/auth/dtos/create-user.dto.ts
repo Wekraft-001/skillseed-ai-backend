@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import { IsString, IsEmail, MinLength, IsNumber } from 'class-validator';
 import { UserRole } from 'src/common/interfaces';
 
@@ -29,17 +30,12 @@ export class CreateStudentDto {
   @IsString()
   lastName: string;
 
-  @IsEmail()
-  email: string;
-
   @IsNumber()
+  @Transform(({ value }) => parseInt(value) )
   age: number;
 
   @IsString()
   grade: string;
-
-  @IsString()
-  image: string;
 
   @IsString()
   role?: UserRole;

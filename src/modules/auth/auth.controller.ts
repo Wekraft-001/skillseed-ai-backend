@@ -1,4 +1,13 @@
-import { Controller, Body, Post, UsePipes, HttpStatus, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Body,
+  Post,
+  UsePipes,
+  HttpStatus,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
 import { CreateAdminOrParentDto, CreateStudentDto, LoginDto } from './dtos';
 import { AuthService } from './auth.service';
 import { SanitizePipe } from '../sanitizer/sanitize.pipe';
@@ -14,6 +23,7 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { User } from '../schemas';
 import { UserRole } from 'src/common/interfaces';
 import { CurrentUser } from 'src/common/decorators';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('auth')
 export class AuthController {
@@ -55,8 +65,10 @@ export class AuthController {
   }
 
   
-  
-  @Post('addStudent')
+
+
+
+
   @ApiTags('Authentication')
   @ApiResponse({
     status: HttpStatus.CREATED,
@@ -88,12 +100,16 @@ export class AuthController {
   })
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.PARENT, UserRole.SCHOOL_ADMIN)
-  @UsePipes(new SanitizePipe())
-  async registerStudent(@Body() createStudentDto: CreateStudentDto, @CurrentUser() user: User) {
-    return this.authService.registerStudent(createStudentDto, user);
+  // @UsePipes(new SanitizePipe())
+  @Post('addStudent')
+  @UseInterceptors(FileInterceptor('image'))
+  async registerStudent(
+    @UploadedFile() image: Express.Multer.File,
+    @Body() createStudentDto: CreateStudentDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.authService.registerStudent(createStudentDto, user, image);
   }
-
-  
 
   @Post('signin')
   @ApiTags('Authentication')
@@ -107,8 +123,6 @@ export class AuthController {
   sigin(@Body() body: LoginDto) {
     return this.authService.login(body);
   }
-
-
 
   @Post('school/signin')
   async schoolLogin(@Body() dto: LoginDto) {

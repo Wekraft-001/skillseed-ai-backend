@@ -53,12 +53,19 @@ export class SchoolOnboardingService {
         logoUrl,
         password: hashedPassword,
         role: UserRole.SCHOOL_ADMIN,
-        createdBy: superAdmin.firstName,
+        createdBy: superAdmin._id,
+        superAdmin: superAdmin._id,
       });
 
       await newSchool.save({ session });
 
+      const populatedSchool = await this.schoolModel
+        .findById(newSchool._id)
+        .populate('createdBy superAdmin uses')
+        .exec();
+
       await session.commitTransaction();
+
 
       // Send welcome email via Mailtrap
       await this.emailService.sendSchoolOnboardingEmail(
@@ -70,7 +77,7 @@ export class SchoolOnboardingService {
         `School onboarded: ${newSchool.schoolName} by ${superAdmin.email}`,
       );
 
-      return newSchool;
+      return populatedSchool;
     } catch (error) {
       await session.abortTransaction();
       this.logger.error('Error during school onboarding', error);
@@ -84,7 +91,9 @@ export class SchoolOnboardingService {
     try {
       return await this.schoolModel
         .find({ role: UserRole.SCHOOL_ADMIN, deletedAt: null })
-        // .populate('admin superAdmin users')
+        .populate('superAdmin')
+        .populate('users')
+        .populate('createdBy')
         .sort({ createdAt: -1 })
         .exec();
     } catch (error) {

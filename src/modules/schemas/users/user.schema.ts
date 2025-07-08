@@ -7,6 +7,7 @@ export type UserDocument = User &
   Document & {
     _id: Types.ObjectId;
     school: Types.ObjectId;
+    createdBy: Types.ObjectId;
   };
 
 @Schema({ timestamps: true, collection: 'users', autoIndex: true })
@@ -39,9 +40,9 @@ export class User extends Document {
   deletedAt: Date;
 
   @Prop({ type: Types.ObjectId, ref: 'School', default: null })
-  school: School[];
+  school: School;
 
-  @Prop({type: Types.ObjectId, ref: 'User'})
+  @Prop({type: Types.ObjectId, ref: 'User', default: null})
   createdBy?: User;
 
   quizzes?: Types.ObjectId[];

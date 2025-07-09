@@ -8,6 +8,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { LoggerModule } from 'src/common/logger/logger.module';
 import { School, SchoolSchema, User, UserSchema } from '../schemas';
+import { SubscriptionModule } from 'src/subscription/subscription.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { School, SchoolSchema, User, UserSchema } from '../schemas';
       { name: School.name, schema: SchoolSchema },
     ]),
     LoggerModule,
+    SubscriptionModule
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

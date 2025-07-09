@@ -13,7 +13,7 @@ import { JwtService } from '@nestjs/jwt';
 import { LoggerService } from 'src/common/logger/logger.service';
 import { UserRole } from 'src/common/interfaces';
 import { uploadToAzureStorage } from 'src/common/utils/azure-upload.util';
-import { create } from 'domain';
+import { SubscriptionService } from 'src/subscription/subscription.service';
 
 @Injectable()
 export class AuthService {
@@ -24,6 +24,7 @@ export class AuthService {
     private readonly schoolModel: Model<School>,
     private readonly jwtService: JwtService,
     private readonly logger: LoggerService,
+    private readonly subscriptionService: SubscriptionService,
   ) {
     this.logger.setContext(AuthService.name);
   }
@@ -67,6 +68,17 @@ export class AuthService {
       );
     }
 
+    if (currentUser.role === UserRole.PARENT) {
+      const canAddChild = await this.subscriptionService.canAddChild(
+        currentUser._id.toString(),
+      );
+      if (!canAddChild) {
+        throw new BadRequestException(
+          'You need an active subscription to add children or you have reached the maximum limit (30 children). Please purchase a subscription or wait for your current subscription to renew.',
+        );
+      }
+    }
+
     const session: ClientSession = await this.userModel.db.startSession();
 
     try {
@@ -91,6 +103,11 @@ export class AuthService {
       });
 
       await newUser.save({ session });
+
+      if (currentUser.role === UserRole.PARENT) {
+        await this.subscriptionService.incrementChildrenCount(currentUser._id.toString());
+      }
+
       await session.commitTransaction();
 
       const populatedStudent = await this.userModel

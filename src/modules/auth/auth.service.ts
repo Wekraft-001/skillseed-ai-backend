@@ -170,6 +170,7 @@ export class AuthService {
       grade: childUser.grade,
       school: childUser.school,
       createdBy: childUser.createdBy,
+      role: childUser.role,
     };
 
     return {
@@ -181,6 +182,7 @@ export class AuthService {
         age: childUser.age,
         grade: childUser.grade,
         school: childUser.school,
+        role: childUser.role,
         createdBy: childUser.createdBy,
       },
     };

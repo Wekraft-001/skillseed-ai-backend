@@ -66,7 +66,8 @@ export class UserController {
     return user;
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.STUDENT)
   @Get('quiz')
   async getQuiz(@Req() req) {
     return this.aiService.generateCareerQuiz(req.user);

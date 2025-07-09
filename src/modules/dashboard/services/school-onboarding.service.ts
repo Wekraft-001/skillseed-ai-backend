@@ -61,7 +61,7 @@ export class SchoolOnboardingService {
 
       const populatedSchool = await this.schoolModel
         .findById(newSchool._id)
-        .populate('createdBy superAdmin uses')
+        .populate('createdBy superAdmin users')
         .exec();
 
       await session.commitTransaction();

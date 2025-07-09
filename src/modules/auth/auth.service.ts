@@ -82,7 +82,7 @@ export class AuthService {
         firstName: createStudentDto.firstName,
         lastName: createStudentDto.lastName,
         age: createStudentDto.age,
-        grade: createStudentDto.age,
+        grade: createStudentDto.grade,
         imageUrl,
         role: createStudentDto.role,
         password: hashedPassword,
@@ -95,15 +95,20 @@ export class AuthService {
 
       const populatedStudent = await this.userModel
         .findById(newUser._id)
-        .populate('createdBy school')
+        .populate('createdBy')
+        .populate('school')
         .exec();
 
       this.logger.log(
         `Student registered: ${newUser.firstName} ${newUser.lastName} by ${currentUser.firstName}`,
       );
 
+      console.log('Current user:', currentUser);
+      console.log('Current user school:', currentUser.school);
+
       return populatedStudent;
     } catch (error) {
+      await session.abortTransaction();
       this.logger.error('Error registering student', error);
       throw error;
     } finally {
@@ -150,6 +155,8 @@ export class AuthService {
     age: number;
     email: string;
     role: UserRole;
+    school?: School;
+    createdBy?: User;
   }) {
     const payload = {
       sub: user._id,
@@ -157,6 +164,8 @@ export class AuthService {
       age: user.age,
       email: user.email,
       role: user.role,
+      school: user.school,
+      createdBy: user.createdBy,
     };
     this.logger.setContext('AuthService');
     this.logger.log(`JWT issued for user ${user.email}`);
@@ -168,6 +177,8 @@ export class AuthService {
         firstName: user.firstName,
         email: user.email,
         role: user.role,
+        school: user.school,
+        createdBy: user.createdBy,
       },
     };
   }
@@ -187,6 +198,8 @@ export class AuthService {
       role: user.role,
       email: user.email,
       firstName: user.firstName,
+      school: user.school,
+      createdBy: user.createdBy,
     };
 
     return {
@@ -195,7 +208,10 @@ export class AuthService {
         _id: user._id,
         email: user.email,
         firstName: user.firstName,
+        lastName: user.lastName,
+        school: user.school,
         role: user.role,
+        createdBy: user.createdBy,
       },
     };
   }
@@ -203,46 +219,39 @@ export class AuthService {
   async schoolSignin(credentials: { email: string; password: string }) {
     const { email, password } = credentials;
 
-    const school = await this.schoolModel
-      .findOne({ email })
+    const schoolAdmin = await this.schoolModel
+      .findOne({ email, role: UserRole.SCHOOL_ADMIN })
+      .populate('createdBy')
       .select('+password')
       .lean();
 
-    if (!school) {
+    if (!schoolAdmin) {
       this.logger.warn(
         `School login failed: No school found with email ${email}`,
       );
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isPasswordValid = await bcrypt.compare(password, school.password);
+    const isPasswordValid = await bcrypt.compare(password, schoolAdmin.password);
     if (!isPasswordValid) {
       this.logger.warn(`School login failed: Invalid password for ${email}`);
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    if (school.role !== UserRole.SCHOOL_ADMIN) {
-      this.logger.warn(`School login failed: Invalid role for ${email}`);
-      throw new UnauthorizedException('Unauthorized role');
-    }
-
     const payload = {
-      sub: school._id,
-      email: school.email,
-      role: school.role,
-      name: school.schoolName,
+      sub: schoolAdmin._id,
+      email: schoolAdmin.email,
+      role: schoolAdmin.role,
+      name: schoolAdmin.schoolName,
+      createdBy: schoolAdmin.createdBy,
+      school: schoolAdmin.createdBy
     };
 
-    this.logger.log(`School ${school.schoolName} logged in successfully`);
+    this.logger.log(`School ${schoolAdmin.schoolName} logged in successfully`);
 
     return {
       access_token: this.jwtService.sign(payload),
-      school: {
-        _id: school._id,
-        email: school.email,
-        schoolName: school.schoolName,
-        role: school.role,
-      },
+      user: schoolAdmin,
     };
   }
 }

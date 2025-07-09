@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { UserRole } from 'src/common/interfaces';
+import { School, User } from 'src/modules/schemas';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -20,12 +21,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     age: number;
     email: string;
     role?: UserRole;
+    school?: School;
+    createdBy?: User;
   }) {
-    // console.log(`JWT validation payload: ${JSON.stringify(payload)}`);
-    // console.log('=== JWT VALIDATION STARTED ===');
-    // console.log('Payload received:', JSON.stringify(payload, null, 2));
-    // console.log('Payload sub type:', typeof payload.sub);
-    // console.log('Payload sub value:', payload.sub);
 
     if (!payload.sub) {
       console.log('ERROR: Missing sub in payload');
@@ -41,7 +39,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       firstName: payload.firstName,
       age: payload.age,
       email: payload.email,
+      school: payload.school,
       role: payload.role,
+      createdBy: payload.createdBy,
     };
     console.log(`Returning user object: ${JSON.stringify(user)}`);
     return user;

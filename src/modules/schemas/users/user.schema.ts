@@ -36,7 +36,7 @@ export class User extends Document {
   @Prop({ required: false })
   age: number;
 
-  @Prop({ unique: true, lowercase: true, trim: true })
+  @Prop({sparse: true, unique: true, lowercase: true, trim: true })
   email: string;
 
   @Prop({ required: true, minlength: 6 })

@@ -18,7 +18,7 @@ export class SubscriptionService {
 
   async createSubscription(user: User, phoneNumber: string) {
     try {
-      const existingSubscription = await this.getActiveSubscription(user._id);
+      const existingSubscription = await this.getActiveSubscription(user._id.toString());
       if (existingSubscription) {
         throw new BadRequestException('You already have an active subscription');
       }

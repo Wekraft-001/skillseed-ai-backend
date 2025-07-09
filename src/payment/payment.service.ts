@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosResponse } from 'axios';
 import { LoggerService } from 'src/common/logger/logger.service';
@@ -6,11 +11,13 @@ import { PaymentRequest, PaymentResponse } from 'src/common/interfaces';
 
 @Injectable()
 export class PaymentService {
-  private readonly logger: LoggerService;
   private readonly flutterwaveUrl = process.env.FLUTTERWAVE_BASE_URL;
   private readonly secretKey: string;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private readonly logger: LoggerService,
+  ) {
     this.secretKey = this.configService.get<string>('FLUTTERWAVE_SECRET_KEY');
   }
 
@@ -39,17 +46,25 @@ export class PaymentService {
           'Content-Type': 'application/json',
           accept: 'application/json',
         },
+        validateStatus: () => true,
       });
 
-      this.logger.log(`Payment initiated: ${paymentData.tx_ref}`);
+      if (!response.data) {
+        throw new Error('Empty response from Flutterwave');
+      }
 
+      this.logger.log(`Payment initiated: ${paymentData.tx_ref}`);
       return response.data;
     } catch (error) {
-      this.logger.error(
-        'Payment initiation failed',
-        error.response?.data || error.message,
-      );
-      throw new BadRequestException('Payment initiation failed');
+      // this.logger.error(
+      //   'Payment initiation failed',
+      //   error,
+      // );
+      // throw new BadRequestException('Payment initiation failed');
+      // throw new HttpException(
+      // error.response?.data?.message || 'Payment initiation failed',
+      // error.response?.status || HttpStatus.BAD_REQUEST
+      throw error;
     }
   }
 

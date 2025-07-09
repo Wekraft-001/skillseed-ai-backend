@@ -1,16 +1,19 @@
-// src/subscription/subscription.controller.ts
-import { Controller, Post, Get, Body, Request, UseGuards, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Request,
+  UseGuards,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtAuthGuard } from 'src/modules/auth/guards';
 import { SubscriptionService } from './subscription.service';
 import { UserRole } from 'src/common/interfaces';
-
-class CreateSubscriptionDto {
-  phoneNumber: string;
-}
-
-class VerifyPaymentDto {
-  transactionRef: string;
-}
+import { CurrentUser } from 'src/common/decorators';
+import { User } from 'src/modules/schemas';
+import { CreateSubscriptionDto } from 'src/common/interfaces';
+import { VerifyPaymentDto } from 'src/common/interfaces/verify-payment.dto';
 
 @Controller('subscription')
 @UseGuards(JwtAuthGuard)
@@ -18,33 +21,44 @@ export class SubscriptionController {
   constructor(private subscriptionService: SubscriptionService) {}
 
   @Post('create')
-  async createSubscription(@Body() createSubscriptionDto: CreateSubscriptionDto, @Request() req) {
-    const user = req.user;
-    
+  async createSubscription(
+    @Body() createSubscriptionDto: CreateSubscriptionDto,
+    @CurrentUser() user: User,
+  ) {
     if (user.role !== UserRole.PARENT) {
       throw new BadRequestException('Only parents can create subscriptions');
     }
 
-    return this.subscriptionService.createSubscription(user, createSubscriptionDto.phoneNumber);
+    return this.subscriptionService.createSubscription(
+      user,
+      createSubscriptionDto.phoneNumber,
+    );
   }
 
   @Post('verify-payment')
-  async verifyPayment(@Body() verifyPaymentDto: VerifyPaymentDto, @Request() req) {
+  async verifyPayment(
+    @Body() verifyPaymentDto: VerifyPaymentDto,
+    @Request() req,
+  ) {
     const user = req.user;
-    
+
     if (user.role !== UserRole.PARENT) {
       throw new BadRequestException('Only parents can verify payments');
     }
 
-    return this.subscriptionService.verifyPayment(verifyPaymentDto.transactionRef);
+    return this.subscriptionService.verifyPayment(
+      verifyPaymentDto.transactionRef,
+    );
   }
 
   @Get('status')
   async getSubscriptionStatus(@Request() req) {
     const user = req.user;
-    
+
     if (user.role !== UserRole.PARENT) {
-      throw new BadRequestException('Only parents can check subscription status');
+      throw new BadRequestException(
+        'Only parents can check subscription status',
+      );
     }
 
     return this.subscriptionService.getSubscriptionStatus(user._id);
@@ -53,7 +67,7 @@ export class SubscriptionController {
   @Get('can-add-child')
   async canAddChild(@Request() req) {
     const user = req.user;
-    
+
     if (user.role !== UserRole.PARENT) {
       throw new BadRequestException('Only parents can check this');
     }

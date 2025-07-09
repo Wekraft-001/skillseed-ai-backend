@@ -3,24 +3,32 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { SubscriptionStatus } from 'src/common/interfaces';
-import { Subscription, SubscriptionDocument } from 'src/modules/schemas/subscription.schema';
+import {
+  Subscription,
+  SubscriptionDocument,
+} from 'src/modules/schemas/subscription.schema';
 import { User } from 'src/modules/schemas';
 import { PaymentService } from '../payment/payment.service';
+import { LoggerService } from 'src/common/logger/logger.service';
 
 @Injectable()
 export class SubscriptionService {
-  private readonly logger = new Logger(SubscriptionService.name);
-
   constructor(
-    @InjectModel(Subscription.name) private subscriptionModel: Model<SubscriptionDocument>,
+    @InjectModel(Subscription.name)
+    private subscriptionModel: Model<SubscriptionDocument>,
     private paymentService: PaymentService,
+    private logger: LoggerService,
   ) {}
 
   async createSubscription(user: User, phoneNumber: string) {
     try {
-      const existingSubscription = await this.getActiveSubscription(user._id.toString());
+      const existingSubscription = await this.getActiveSubscription(
+        user._id.toString(),
+      );
       if (existingSubscription) {
-        throw new BadRequestException('You already have an active subscription');
+        throw new BadRequestException(
+          'You already have an active subscription',
+        );
       }
 
       const transactionRef = this.paymentService.generateTransactionReference();
@@ -54,11 +62,12 @@ export class SubscriptionService {
         meta: {
           subscriptionId: subscription._id,
           userId: user._id,
-          purpose: 'Monthly subscription for adding children'
-        }
+          purpose: 'Monthly subscription for adding children',
+        },
       };
 
-      const paymentResponse = await this.paymentService.initiateMobileMoneyPayment(paymentData);
+      const paymentResponse =
+        await this.paymentService.initiateMobileMoneyPayment(paymentData);
 
       // Update subscription with payment data
       subscription.paymentData = paymentResponse;
@@ -67,7 +76,9 @@ export class SubscriptionService {
       }
       await subscription.save();
 
-      this.logger.log(`Subscription created for user ${user._id}: ${transactionRef}`);
+      this.logger.log(
+        `Subscription created for user ${user._id}: ${transactionRef}`,
+      );
       return { subscription, paymentResponse };
     } catch (error) {
       this.logger.error('Error creating subscription', error);
@@ -77,7 +88,9 @@ export class SubscriptionService {
 
   async verifyPayment(transactionRef: string) {
     try {
-      const subscription = await this.subscriptionModel.findOne({ transactionRef });
+      const subscription = await this.subscriptionModel.findOne({
+        transactionRef,
+      });
       if (!subscription) {
         throw new BadRequestException('Subscription not found');
       }
@@ -86,9 +99,14 @@ export class SubscriptionService {
         throw new BadRequestException('No payment transaction found');
       }
 
-      const verificationResponse = await this.paymentService.verifyPayment(subscription.flutterwaveTransactionId);
-      
-      if (verificationResponse.status === 'success' && verificationResponse.data.status === 'successful') {
+      const verificationResponse = await this.paymentService.verifyPayment(
+        subscription.flutterwaveTransactionId,
+      );
+
+      if (
+        verificationResponse.status === 'success' &&
+        verificationResponse.data.status === 'successful'
+      ) {
         // Activate subscription
         subscription.status = SubscriptionStatus.ACTIVE;
         subscription.isActive = true;
@@ -106,12 +124,14 @@ export class SubscriptionService {
     }
   }
 
-  async getActiveSubscription(userId: string): Promise<SubscriptionDocument | null> {
+  async getActiveSubscription(
+    userId: string,
+  ): Promise<SubscriptionDocument | null> {
     return this.subscriptionModel.findOne({
       user: userId,
       status: SubscriptionStatus.ACTIVE,
       isActive: true,
-      endDate: { $gt: new Date() }
+      endDate: { $gt: new Date() },
     });
   }
 
@@ -126,14 +146,17 @@ export class SubscriptionService {
   async canAddChild(userId: string): Promise<boolean> {
     const subscription = await this.getActiveSubscription(userId);
     if (!subscription) return false;
-    
+
     return subscription.childrenCount < subscription.maxChildren;
   }
 
   async getSubscriptionStatus(userId: string) {
     const subscription = await this.getActiveSubscription(userId);
     if (!subscription) {
-      return { hasActiveSubscription: false, message: 'No active subscription' };
+      return {
+        hasActiveSubscription: false,
+        message: 'No active subscription',
+      };
     }
 
     return {
@@ -142,9 +165,10 @@ export class SubscriptionService {
         status: subscription.status,
         childrenCount: subscription.childrenCount,
         maxChildren: subscription.maxChildren,
-        remainingChildren: subscription.maxChildren - subscription.childrenCount,
-        endDate: subscription.endDate
-      }
+        remainingChildren:
+          subscription.maxChildren - subscription.childrenCount,
+        endDate: subscription.endDate,
+      },
     };
   }
 }

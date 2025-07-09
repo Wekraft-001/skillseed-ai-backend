@@ -149,36 +149,39 @@ export class AuthService {
   //   });
   // }
 
-  async login1(user: {
-    _id: string;
-    firstName: string;
-    age: number;
-    email: string;
-    role: UserRole;
-    school?: School;
-    createdBy?: User;
-  }) {
+  async childLogin(credentials: { firstName: string; password: string }) {
+    const childUser = await this.userModel
+      .findOne({ firstName: credentials.firstName })
+      .select('+password')
+      .lean();
+
+    if (
+      !childUser ||
+      !(await bcrypt.compare(credentials.password, childUser.password))
+    ) {
+      throw new UnauthorizedException('Invalid credentails');
+    }
+
     const payload = {
-      sub: user._id,
-      firstName: user.firstName,
-      age: user.age,
-      email: user.email,
-      role: user.role,
-      school: user.school,
-      createdBy: user.createdBy,
+      sub: childUser._id,
+      firstName: childUser.firstName,
+      lastName: childUser.lastName,
+      age: childUser.age,
+      grade: childUser.grade,
+      school: childUser.school,
+      createdBy: childUser.createdBy,
     };
-    this.logger.setContext('AuthService');
-    this.logger.log(`JWT issued for user ${user.email}`);
 
     return {
       access_token: this.jwtService.sign(payload, { expiresIn: '1d' }),
       user: {
-        _id: user._id,
-        firstName: user.firstName,
-        email: user.email,
-        role: user.role,
-        school: user.school,
-        createdBy: user.createdBy,
+        _id: childUser._id,
+        firstName: childUser.firstName,
+        lastName: childUser.lastName,
+        age: childUser.age,
+        grade: childUser.grade,
+        school: childUser.school,
+        createdBy: childUser.createdBy,
       },
     };
   }
@@ -232,7 +235,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isPasswordValid = await bcrypt.compare(password, schoolAdmin.password);
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      schoolAdmin.password,
+    );
     if (!isPasswordValid) {
       this.logger.warn(`School login failed: Invalid password for ${email}`);
       throw new UnauthorizedException('Invalid credentials');
@@ -244,7 +250,7 @@ export class AuthService {
       role: schoolAdmin.role,
       name: schoolAdmin.schoolName,
       createdBy: schoolAdmin.createdBy,
-      school: schoolAdmin.createdBy
+      school: schoolAdmin.createdBy,
     };
 
     this.logger.log(`School ${schoolAdmin.schoolName} logged in successfully`);

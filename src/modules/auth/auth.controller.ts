@@ -128,4 +128,9 @@ export class AuthController {
   async schoolLogin(@Body() dto: LoginDto) {
     return this.authService.schoolSignin(dto);
   }
+
+  @Post('child/signin')
+  async childLogin(@Body() credentials: {firstName, password}) {
+    return this.authService.childLogin(credentials)
+  }
 }

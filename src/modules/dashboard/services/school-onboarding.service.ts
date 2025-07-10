@@ -61,7 +61,7 @@ export class SchoolOnboardingService {
 
       const populatedSchool = await this.schoolModel
         .findById(newSchool._id)
-        .populate('createdBy superAdmin users')
+        .populate('createdBy superAdmin students')
         .exec();
 
       await session.commitTransaction();
@@ -91,8 +91,8 @@ export class SchoolOnboardingService {
     try {
       return await this.schoolModel
         .find({ role: UserRole.SCHOOL_ADMIN, deletedAt: null })
-        .populate('superAdmin')
-        .populate('users')
+        // .populate('superAdmin')
+        .populate('students')
         .populate('createdBy')
         .sort({ createdAt: -1 })
         .exec();

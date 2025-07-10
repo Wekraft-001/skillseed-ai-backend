@@ -47,10 +47,10 @@ export class User extends Document {
   deletedAt: Date;
 
   @Prop({ type: Types.ObjectId, ref: 'School', index: true, default: null })
-  school: School;
+  school: Types.ObjectId;
 
   @Prop({type: Types.ObjectId, ref: 'User', default: null, index: true})
-  createdBy?: User;
+  createdBy?: Types.ObjectId;
 
   quizzes?: Types.ObjectId[];
   badges: Types.ObjectId[];

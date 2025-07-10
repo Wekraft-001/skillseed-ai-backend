@@ -104,8 +104,16 @@ export class AuthService {
 
       await newUser.save({ session });
 
+      await this.schoolModel.findByIdAndUpdate(
+        currentUser.school,
+        { $push: { students: newUser._id } },
+        { session },
+      );
+
       if (currentUser.role === UserRole.PARENT) {
-        await this.subscriptionService.incrementChildrenCount(currentUser._id.toString());
+        await this.subscriptionService.incrementChildrenCount(
+          currentUser._id.toString(),
+        );
       }
 
       await session.commitTransaction();
@@ -269,7 +277,7 @@ export class AuthService {
       role: schoolAdmin.role,
       name: schoolAdmin.schoolName,
       createdBy: schoolAdmin.createdBy,
-      school: schoolAdmin.createdBy,
+      school: schoolAdmin._id,
     };
 
     this.logger.log(`School ${schoolAdmin.schoolName} logged in successfully`);

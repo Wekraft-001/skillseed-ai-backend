@@ -14,29 +14,30 @@ export type UserDocument = User &
 export class User extends Document {
   _id: Types.ObjectId;
 
-  @Prop({ required: true })
+  @Prop({ required: true, index: true })
   firstName: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, index: true })
   lastName: string;
 
   @Prop({
     type: String,
     enum: UserRole,
     default: UserRole.STUDENT,
+    index: true
   })
   role: UserRole;
 
-  @Prop({ required: false })
+  @Prop({ required: false, index: true })
   image?: string;
 
-  @Prop({ required: false })
+  @Prop({ required: false, index: true })
   grade?: string;
 
-  @Prop({ required: false })
+  @Prop({ required: false, index: true })
   age: number;
 
-  @Prop({sparse: true, unique: true, lowercase: true, trim: true })
+  @Prop({sparse: true, unique: true, lowercase: true, trim: true, index: true })
   email: string;
 
   @Prop({ required: true, minlength: 6 })
@@ -45,10 +46,10 @@ export class User extends Document {
   @Prop({ default: null })
   deletedAt: Date;
 
-  @Prop({ type: Types.ObjectId, ref: 'School', default: null })
+  @Prop({ type: Types.ObjectId, ref: 'School', index: true, default: null })
   school: School;
 
-  @Prop({type: Types.ObjectId, ref: 'User', default: null})
+  @Prop({type: Types.ObjectId, ref: 'User', default: null, index: true})
   createdBy?: User;
 
   quizzes?: Types.ObjectId[];

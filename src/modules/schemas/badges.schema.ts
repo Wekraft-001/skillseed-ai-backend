@@ -7,13 +7,13 @@ export type BadgeDocument = Badge & Document;
 
 @Schema({ timestamps: true })
 export class Badge {
-  @Prop({ required: true })
+  @Prop({ required: true, index: true })
   name: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, index: true })
   description: string;
 
-  @Prop()
+  @Prop({index: true})
   imageUrl: string;
 
   @Prop({
@@ -24,6 +24,7 @@ export class Badge {
       },
     ],
     required: true,
+    index: true
   })
   tasks: {
     description: string;
@@ -33,10 +34,10 @@ export class Badge {
   @Prop({ default: false })
   isCompleted: boolean;
 
-  @Prop({ type: Types.ObjectId, ref: 'ProjectShowcase' })
+  @Prop({ type: Types.ObjectId, ref: 'ProjectShowcase', index: true })
   showcase: ProjectShowcase;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   user: User;
 }
 

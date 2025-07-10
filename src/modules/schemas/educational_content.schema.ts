@@ -9,6 +9,7 @@ export class EducationalContent {
   @Prop({
     type: [{ title: String, url: String }],
     default: [],
+    index: true
   })
   videoUrl: { title: string; url: string }[];
 
@@ -22,6 +23,7 @@ export class EducationalContent {
       },
     ],
     default: [],
+    index: true
   })
   books: Array<{
     title: string;
@@ -39,6 +41,7 @@ export class EducationalContent {
       },
     ],
     default: [],
+    index: true
   })
   games: Array<{
     name: string;
@@ -46,10 +49,10 @@ export class EducationalContent {
     skill: string;
   }>;
 
-  @Prop({ enum: ['video', 'book', 'game'], required: false })
+  @Prop({ enum: ['video', 'book', 'game'], required: false, index: true })
   contentType?: 'video' | 'book' | 'game';
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: Types.ObjectId, ref: 'User', index: true })
   user: Types.ObjectId | User;
 }
 

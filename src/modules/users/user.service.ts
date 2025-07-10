@@ -13,6 +13,7 @@ export class UserService {
      return this.userModel
       .find({deletedAt: null})
       .populate('school', 'createdBy')
+      .lean()
       .exec();
   }
 }

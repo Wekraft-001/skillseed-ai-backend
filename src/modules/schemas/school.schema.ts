@@ -4,49 +4,49 @@ import { User } from './users/user.schema';
 
 @Schema({ timestamps: true })
 export class School extends Document {
-  @Prop({ required: true })
+  @Prop({ required: true, index: true })
   schoolName: string;
 
-  @Prop()
+  @Prop({ index: true })
   schoolType: string;
 
-  @Prop()
+  @Prop({index: true})
   schoolContactPerson: string;
 
-  @Prop()
+  @Prop({index: true})
   email: string;
 
-  @Prop()
+  @Prop({index: true})
   address: string;
 
-  @Prop()
+  @Prop({index: true})
   city: string;
 
-  @Prop()
+  @Prop({index: true})
   country: string;
 
-  @Prop()
+  @Prop({index: true})
   phoneNumber: string;
 
-  @Prop()
+  @Prop({index: true})
   logoUrl?: string;
 
-  @Prop()
+  @Prop({index: true})
   role?: string;
 
-  @Prop()
+  @Prop({index: true})
   password?: string;
 
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }] })
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], index: true })
   users: User[];
 
-  @Prop({ type: Types.ObjectId, ref: 'User', default: null })
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
   superAdmin: User;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', default: null })
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
   createdBy?: User;
 
-  @Prop({ default: null })
+  @Prop({ default: null, index: true })
   deletedAt: Date;
 }
 

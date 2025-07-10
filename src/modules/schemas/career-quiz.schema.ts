@@ -6,19 +6,19 @@ export type CareerQuizDocument = CareerQuiz & Document;
 
 @Schema({ timestamps: true, collection: 'career_quizzes' })
 export class CareerQuiz {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   user: Types.ObjectId | User;
 
-  @Prop({ type: [String], required: true })
+  @Prop({ type: [String], required: true, index: true })
   questions: string[];
 
-  @Prop({ type: [String] })
+  @Prop({ type: [String], index: true })
   answers: string[];
 
-  @Prop({ type: Object })
+  @Prop({ type: Object, index: true })
   analysis: any;
 
-  @Prop({ default: false })
+  @Prop({ default: false, index: true })
   completed: boolean;
 }
 

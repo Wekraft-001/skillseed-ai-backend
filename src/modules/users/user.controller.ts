@@ -8,6 +8,7 @@ import {
   BadRequestException,
   Param,
   ParseIntPipe,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AiService } from '../ai/ai.service';
@@ -107,10 +108,6 @@ export class UserController {
   @ApiResponse({ status: 500, description: 'Internal server error' })
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(
-    UserRole.STUDENT,
-    UserRole.MENTOR,
-    UserRole.PARENT,
-    UserRole.SCHOOL_ADMIN,
     UserRole.SUPER_ADMIN,
   )
   @ApiResponse({
@@ -120,8 +117,8 @@ export class UserController {
   })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @Get('quiz/all')
-  async getAllQuizzes() {
-    return this.aiService.getAllQuizzes();
+  async getAllQuizzes(@CurrentUser() user: User) {
+    return this.aiService.getAllQuizzes(user);
   }
 
 
@@ -148,6 +145,7 @@ export class UserController {
     @Body() answersDto: SubmitAnswersDto,
     @CurrentUser() user: User,
   ) {
+  
     if (id !== answersDto.quizId) {
       throw new BadRequestException('Quiz ID does not match');
     }

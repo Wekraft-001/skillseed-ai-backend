@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -61,7 +62,12 @@ export class AiService {
     return quiz;
   }
 
-  async getAllQuizzes(): Promise<CareerQuiz[]> {
+  async getAllQuizzes(currentUser: User): Promise<CareerQuiz[]> {
+
+    if (currentUser.role !== UserRole.SUPER_ADMIN) {
+    throw new ForbiddenException('Access denied');
+  }
+
     return await this.quizModel.find().populate('user').exec();
   }
 
@@ -93,16 +99,16 @@ export class AiService {
     const prompt = `Given the following answers from a child... 
       You are a career counselor analyzing a student's responses to career assessment questions. 
       Based on the following questions and answers, provide a comprehensive career analysis and recommendations.
-        
+
       ${answers}
-        
+
       Please provide:
       1. Analysis of the student's interests and strengths
       2. Potential career paths that align with their responses
       3. Skills they should develop
       4. Educational recommendations
       5. Next steps for career exploration
-        
+
       Format your response in a clear, encouraging manner suitable for a student.
   `.trim();
 

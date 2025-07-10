@@ -251,6 +251,7 @@ export class DashboardService {
       this.userModel
         .find({
           role: UserRole.STUDENT,
+          createdBy: user._id,
           deletedAt: null,
         })
         .populate('school', 'schoolName schoolContactPerson email logoUrl')
@@ -259,13 +260,11 @@ export class DashboardService {
     ]);
 
     return {
-      // success: true,
-      // message: 'School admin dashboard data retrieved successfully',
-      // timestamp: new Date().toISOString(),
-      // userId: (user as any)._id,
       students,
-      // analytics: {},
       showcases: [],
+      analytics: {
+      totalStudents: students.length,
+    },
     };
   }
 

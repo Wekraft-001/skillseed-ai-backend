@@ -52,9 +52,16 @@ export class User extends Document {
   @Prop({type: Types.ObjectId, ref: 'User', default: null, index: true})
   createdBy?: Types.ObjectId;
 
+  @Prop({type: Types.ObjectId, ref: 'CareerQuiz', index: true})
   quizzes?: Types.ObjectId[];
+
+  @Prop({type: Types.ObjectId, ref: 'Badge', index: true})
   badges: Types.ObjectId[];
+
+  @Prop({type: Types.ObjectId, ref: 'EducationalContent', index: true})
   educationalContents: Types.ObjectId[];
+
+  @Prop({type: Types.ObjectId, ref: 'ProjectShowCase', index: true})
   showcases: Types.ObjectId[];
 }
 

@@ -256,6 +256,7 @@ export class DashboardService {
         })
         .populate('school', 'schoolName schoolContactPerson email logoUrl')
         .populate('createdBy', 'firstName lastName email role')
+        .populate('quizzes')
         .lean(),
     ]);
 

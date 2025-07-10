@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsInt,
   IsString,
+  IsNotEmpty,
 } from 'class-validator';
 
 export class AnswerDto {
@@ -15,8 +16,9 @@ export class AnswerDto {
 }
 
 export class SubmitAnswersDto {
-  @IsNumber()
-  quizId: number;
+  @IsString()
+  @IsNotEmpty()
+  quizId: string;
 
   @IsArray()
   @IsOptional()

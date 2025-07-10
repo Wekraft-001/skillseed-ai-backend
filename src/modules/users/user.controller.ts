@@ -144,7 +144,7 @@ export class UserController {
   @Roles(UserRole.STUDENT)
   @Post('quiz/:id/answers')
   async sumbitQuizAnswers(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() answersDto: SubmitAnswersDto,
     @CurrentUser() user: User,
   ) {
@@ -181,7 +181,7 @@ export class UserController {
   @UseGuards(AuthGuard('jwt'))
   @Post('quiz/:id/generate-profile')
   async generateProfileOutCome(
-    @Param('id', ParseIntPipe) quizId: number,
+    @Param('id') quizId: string,
     @CurrentUser() user: User,
   ) {
     const dto = new SubmitAnswersDto();

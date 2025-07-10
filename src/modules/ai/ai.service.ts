@@ -9,7 +9,12 @@ import OpenAI from 'openai';
 import { Model, Types } from 'mongoose';
 import { LoggerService } from 'src/common/logger/logger.service';
 import { CareerQuiz, CareerQuizDocument } from '../schemas/career-quiz.schema';
-import { EducationalContent, EducationalContentDocument, User, UserDocument } from '../schemas';
+import {
+  EducationalContent,
+  EducationalContentDocument,
+  User,
+  UserDocument,
+} from '../schemas';
 import { SubmitAnswersDto, UserRole } from 'src/common/interfaces';
 
 @Injectable()
@@ -85,7 +90,21 @@ export class AiService {
       .sort((a, b) => a.questionIndex - b.questionIndex)
       .map((a) => a.answers);
 
-    const prompt = `Given the following answers from a child...`;
+    const prompt = `Given the following answers from a child... 
+      You are a career counselor analyzing a student's responses to career assessment questions. 
+      Based on the following questions and answers, provide a comprehensive career analysis and recommendations.
+        
+      ${answers}
+        
+      Please provide:
+      1. Analysis of the student's interests and strengths
+      2. Potential career paths that align with their responses
+      3. Skills they should develop
+      4. Educational recommendations
+      5. Next steps for career exploration
+        
+      Format your response in a clear, encouraging manner suitable for a student.
+  `.trim();
 
     const response = await this.openai.chat.completions.create({
       model: 'gpt-3.5-turbo',

@@ -40,11 +40,11 @@ _Response: Array of user objects (JSON)_
 
 `Method: POST`
 
-`Path: /auth/register`
+`Path: /auth/child/signin`
 
 `Content-Type: application/json`
 
-`Authorization: Not required`
+`Authorization: Require (Bearer token parent/school_admin)`
 
 Description: Creates a new student account.
 

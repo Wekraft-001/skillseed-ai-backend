@@ -63,21 +63,14 @@ export class DashboardController {
     UserRole.SCHOOL_ADMIN,
     UserRole.SUPER_ADMIN,
   )
-  async getDashboard(@CurrentUser() user: User): Promise<DashboardData> {
+  async getDashboard(@CurrentUser() user: User) {
     this.logger.log(
       `Dashboard request from user: ${user._id} with role: ${user.role}`,
     );
 
     try {
-      const dashboardData = await this.dashboardService.getDashboardData(user);
+      return await this.dashboardService.getDashboardData(user);
 
-      return {
-        success: true,
-        message: 'Dashboard data retrieved successfully',
-        timestamp: new Date().toISOString(),
-        data: dashboardData,
-        userId: (user as any)._id,
-      };
     } catch (error) {
       this.logger.error(
         `Error retrieving dashboard data for user: ${user._id}`,

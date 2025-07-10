@@ -48,9 +48,9 @@ export class School extends Document {
   students: Types.ObjectId[];
 
   @Prop({ type: Types.ObjectId, ref: 'User', index: true })
-  superAdmin: User;
+  superAdmin?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', default: null, index: true })
+  @Prop({ type: Types.ObjectId, ref: 'User', index: true })
   createdBy?: Types.ObjectId;
 
   @Prop({ default: null, index: true })

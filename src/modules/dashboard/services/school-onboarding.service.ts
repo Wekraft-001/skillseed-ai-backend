@@ -91,9 +91,9 @@ export class SchoolOnboardingService {
     try {
       return await this.schoolModel
         .find({ role: UserRole.SCHOOL_ADMIN, deletedAt: null })
-        // .populate('superAdmin')
+        .populate('superAdmin')
         .populate('students')
-        .populate('createdBy')
+        .populate('createdBy', 'firstName lastName email')
         .sort({ createdAt: -1 })
         .exec();
     } catch (error) {

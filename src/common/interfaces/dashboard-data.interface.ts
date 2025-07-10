@@ -11,13 +11,22 @@ export interface DashboardData {
     parents?: User[];
     analytics?: any;
     schools?: School[];
-    success: boolean;
-    message?: string;
-    timestamp?: string;
-    data?: any;
-    userId: number;
-    // recentActivities?: any[];
-    // notifications?: any[];
+}
+
+export interface DashboardResponse extends DashboardData {
+    students?: User[],
+    mentors?: User[],
+    schools?: School[],
+    success: boolean,
+    message: string,
+    timestamp: string,
+    userId: number,
+    summary: DashboardSummary,
+    currentUser: User,
+    // data?: {
+    //     success: true,
+    //     message: 'Dashboard data retrieved successfully',        
+    // };
 }
 
 export interface SuperAdminDashboardResponse {

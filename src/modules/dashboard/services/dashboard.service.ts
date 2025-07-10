@@ -9,6 +9,7 @@ import { LoggerService } from 'src/common/logger/logger.service';
 import { AiService } from '../../ai/ai.service';
 import {
   DashboardData,
+  DashboardResponse,
   DashboardSummary,
   UserRole,
 } from 'src/common/interfaces';
@@ -45,7 +46,7 @@ export class DashboardService {
   ) {}
 
   async getDashboardData(user: User): Promise<{
-    data: DashboardData;
+    dashboardResponse: DashboardResponse;
     summary: DashboardSummary;
     currentUser: User;
   }> {
@@ -86,16 +87,20 @@ export class DashboardService {
         }
       })();
 
-      return {
-        data: {
-          ...data,
-          success: true,
-          message: 'Dashboard data retrieved successfully',
-          timestamp: new Date().toISOString(),
-          userId: (user as any)._id,
-        },
+      const dashboardResponse: DashboardResponse = {
+        ...data,
+        success: true,
+        message: 'Dashboard data retrieved successfully',
+        timestamp: new Date().toISOString(),
+        userId: (user as any)._id,
         summary,
         currentUser: user
+      };
+
+      return {
+        dashboardResponse,
+        summary,
+        currentUser: user,
       };
     } catch (error) {
       this.logger.error(
@@ -122,17 +127,13 @@ export class DashboardService {
         .populate('createdBy', 'firstName lastName email role')
         .lean(),
     ]);
-   
+
     return {
-      success: true,
-      message: 'Super admin dashboard data retrieved successfully',
-      timestamp: new Date().toISOString(),
-      userId: (user as any)._id,
       schools,
       students,
       analytics: {
         totalSchools: schools.length,
-        totalStudents: students.length
+        totalStudents: students.length,
       },
     };
   }
@@ -154,13 +155,8 @@ export class DashboardService {
     ]);
 
     return {
-      success: true,
-      message: 'Student dashboard data retrieved successfully',
-      timestamp: new Date().toISOString(),
-      userId: (user as any)._id,
       educationalContents,
       badges,
-
     };
   }
 
@@ -208,10 +204,10 @@ export class DashboardService {
 
   private async getMentorDashboardData(user: User): Promise<DashboardData> {
     return {
-      success: true,
-      message: 'Mentor dashboard data retrieved successfully',
-      timestamp: new Date().toISOString(),
-      userId: (user as any)._id,
+      // success: true,
+      // message: 'Mentor dashboard data retrieved successfully',
+      // timestamp: new Date().toISOString(),
+      // userId: (user as any)._id,
       students: [],
       badges: [],
       showcases: [],
@@ -230,10 +226,10 @@ export class DashboardService {
 
   private async getParentDashboardData(user: User): Promise<DashboardData> {
     return {
-      success: true,
-      message: 'Parent dashboard data retrieved successfully',
-      timestamp: new Date().toISOString(),
-      userId: (user as any)._id,
+      // success: true,
+      // message: 'Parent dashboard data retrieved successfully',
+      // timestamp: new Date().toISOString(),
+      // userId: (user as any)._id,
       students: [],
       badges: [],
       showcases: [],
@@ -251,17 +247,25 @@ export class DashboardService {
   private async getSchoolAdminDashboardData(
     user: User,
   ): Promise<DashboardData> {
+    const [students] = await Promise.all([
+      this.userModel
+        .find({
+          role: UserRole.STUDENT,
+          deletedAt: null,
+        })
+        .populate('school', 'schoolName schoolContactPerson email logoUrl')
+        .populate('createdBy', 'firstName lastName email role')
+        .lean(),
+    ]);
+
     return {
-      success: true,
-      message: 'School admin dashboard data retrieved successfully',
-      timestamp: new Date().toISOString(),
-      userId: (user as any)._id,
-      students: [],
-      analytics: {},
+      // success: true,
+      // message: 'School admin dashboard data retrieved successfully',
+      // timestamp: new Date().toISOString(),
+      // userId: (user as any)._id,
+      students,
+      // analytics: {},
       showcases: [],
-      schools: await this.schoolModel
-        .find({ admin: user._id })
-        .populate('admin'),
     };
   }
 

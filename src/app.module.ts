@@ -50,7 +50,7 @@ import { MentorModule } from './modules/dashboard/modules/mentor.module';
     DashboardModule,
     SubscriptionModule,
     RedisModule,
-    TransactionModule
+    TransactionModule,
     MentorModule,
   ],
   controllers: [AppController],

@@ -17,6 +17,8 @@ import { SchoolModule } from './modules/dashboard/modules/school.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { DashboardModule } from './modules/dashboard/modules/dashboard.module';
 import { SubscriptionModule } from './subscription/subscription.module';
+import { RedisModule } from './Redis/redis.module';
+import { TransactionModule } from './modules/dashboard/modules/transaction.module';
 
 @Module({
   imports: [
@@ -44,7 +46,9 @@ import { SubscriptionModule } from './subscription/subscription.module';
     AiModule,
     SchoolModule,
     DashboardModule,
-    SubscriptionModule
+    SubscriptionModule,
+    RedisModule,
+    TransactionModule
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -42,7 +43,9 @@ export class AiService {
   }
 
   async generateCareerQuiz(user: User): Promise<CareerQuiz> {
-    const prompt = `Create 5 discovery questions for a child aged ${user.age}...`;
+    const prompt = `Create 5 discovery questions for a child aged ${user.age}...
+      .map((line) => line.replace(/^\d+\.\s*/, '').trim());
+`;
 
     const response = await this.openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
@@ -63,10 +66,9 @@ export class AiService {
   }
 
   async getAllQuizzes(currentUser: User): Promise<CareerQuiz[]> {
-
     if (currentUser.role !== UserRole.SUPER_ADMIN) {
-    throw new ForbiddenException('Access denied');
-  }
+      throw new ForbiddenException('Access denied');
+    }
 
     return await this.quizModel.find().populate('user').exec();
   }
@@ -201,31 +203,109 @@ export class AiService {
       throw new BadRequestException('No completed quiz found');
     }
 
-    const prompt = `Generate personalized educational content for a ${user.age}-year-old child name ${user.firstName}...`;
+    const prompt = `
+                    You are an educational content curator for children. Generate personalized educational content recommendations for a ${user.age || 'young'}-year-old child named ${user.firstName}.
 
-    const response = await this.openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      response_format: { type: 'json_object' },
-      messages: [{ role: 'user', content: prompt }],
-    });
+                    Based on their career quiz analysis: "${latestQuiz.analysis}"
 
-    const JsonEducationContent = JSON.parse(
-      response.choices[0].message.content || '{}',
-    );
+                    Generate content in the following JSON format:
+                    {
+                      "videoUrl": [
+                        {
+                          "title": "Educational video title",
+                          "url": "https://example.com/video-url"
+                        }
+                      ],
+                      "books": [
+                        {
+                          "title": "Book title",
+                          "author": "Author name",
+                          "level": "beginner/intermediate/advanced",
+                          "theme": "Subject theme (e.g., Science, Math, Arts)"
+                        }
+                      ],
+                      "games": [
+                        {
+                          "name": "Educational game name",
+                          "url": "https://example.com/game-url",
+                          "skill": "Skill developed (e.g., problem-solving, creativity)"
+                        }
+                      ]
+                    }
 
-    const educationalContent = await this.eduContentModel.create({
-      user: user._id,
-      videoUrl: JsonEducationContent.video || [],
-      books: JsonEducationContent.books || [],
-      games: JsonEducationContent.games || [],
-    });
+                    Requirements:
+                    1. Provide 3-5 videos related to their interests and potential career paths
+                    2. Recommend 3-5 age-appropriate books that align with their strengths
+                    3. Suggest 3-5 educational games that develop relevant skills
+                    4. All URLs should be realistic educational platforms (Khan Academy, BBC Bitesize, National Geographic Kids, etc.)
+                    5. Book levels should match the child's age: beginner (ages 5-8), intermediate (ages 9-12), advanced (ages 13+)
+                    6. Game skills should relate to their career interests and quiz responses
+                    7. Content should be engaging, educational, and age-appropriate
 
-    return educationalContent;
+                    Focus on their demonstrated interests and the career suggestions from their quiz analysis.`.trim();
+
+    this.logger.log(`Generating educational content for user: ${userId}`);
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are an educational content curator. Always respond with valid JSON matching the requested format.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        max_tokens: 2000,
+        temperature: 0.7,
+      });
+
+      const contentString = response.choices[0].message.content || '{}';
+      this.logger.log(`OpenAI Response: ${contentString}`);
+
+      const JsonEducationContent = JSON.parse(
+        response.choices[0].message.content || '{}',
+      );
+
+      const educationalContent = await this.eduContentModel.create({
+        user: user._id,
+        videoUrl: JsonEducationContent.video || [],
+        books: JsonEducationContent.books || [],
+        games: JsonEducationContent.games || [],
+      });
+
+      return educationalContent;
+    } catch (error) {
+      this.logger.error('Error generating educational content:', error);
+
+      if (error instanceof SyntaxError) {
+        throw new InternalServerErrorException('Failed to parse AI response');
+      }
+
+      throw new InternalServerErrorException(
+        'Failed to generate educational content',
+      );
+    }
   }
 
-  private async getLatestQuiz(userId: string): Promise<CareerQuiz | null> {
-    return this.quizModel
-      .findOne({ user: userId, analysis: { $ne: null } })
+  // private async getLatestQuiz(userId: string): Promise<CareerQuiz | null> {
+  //   return this.quizModel
+  //     .findOne({ user: userId, analysis: { $ne: null } })
+  //     .sort({ createdAt: -1 })
+  //     .exec();
+  // }
+  private async getLatestQuiz(userId: string) {
+    return await this.quizModel
+      .findOne({
+        user: userId,
+        completed: true,
+        analysis: { $exists: true, $ne: null },
+      })
       .sort({ createdAt: -1 })
       .exec();
   }

@@ -13,13 +13,17 @@ export class EducationalContent {
   })
   videoUrl: { title: string; url: string }[];
 
-  @Prop({
+   @Prop({
     type: [
       {
         title: String,
         author: String,
         level: String,
         theme: String,
+        description: String,
+        keywords: [String],
+        ageGroup: String,
+        careerRelevance: [String] // New field for career paths
       },
     ],
     default: [],
@@ -30,24 +34,28 @@ export class EducationalContent {
     author: string;
     level: string;
     theme: string;
+    description: string;
+    keywords: string[];
+    ageGroup: string;
+    careerRelevance: string[];
   }>;
 
-  @Prop({
-    type: [
-      {
-        name: String,
-        url: String,
-        skill: String,
-      },
-    ],
-    default: [],
-    index: true
-  })
-  games: Array<{
-    name: string;
-    url: string;
-    skill: string;
-  }>;
+  // @Prop({
+  //   type: [
+  //     {
+  //       name: String,
+  //       url: String,
+  //       skill: String,
+  //     },
+  //   ],
+  //   default: [],
+  //   index: true
+  // })
+  // games: Array<{
+  //   name: string;
+  //   url: string;
+  //   skill: string;
+  // }>;
 
   @Prop({ enum: ['video', 'book', 'game'], required: false, index: true })
   contentType?: 'video' | 'book' | 'game';

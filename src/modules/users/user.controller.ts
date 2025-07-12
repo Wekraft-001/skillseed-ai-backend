@@ -205,11 +205,11 @@ export class UserController {
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiBearerAuth()
   async generateEducationalContent(@CurrentUser() user: User) {
-    if (user.role !== UserRole.STUDENT) {
+    if (!UserRole.STUDENT) {
       throw new BadRequestException(
         'Only students can generate educational content',
       );
     }
-    return await this.aiService.generateEducationalContent((user as any).id);
+    return await this.aiService.generateEducationalContent((user as any));
   }
 }

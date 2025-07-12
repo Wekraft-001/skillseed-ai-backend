@@ -102,55 +102,7 @@ export class SchoolOnboardingService {
     }
   }
 
-  // async deleteSchool(schoolId: number) {
-  //   const session = await this.schoolModel.db.startSession();
-  //   session.startTransaction();
-
-  //   try {
-  //     const school = await this.schoolModel
-  //       .findById(schoolId)
-  //       .populate('admin users')
-  //       .session(session)
-  //       .exec();
-
-  //     if (!school) {
-  //       throw new NotFoundException(`School with ID ${schoolId} not found`);
-  //     }
-
-  //     if (school.users?.length) {
-  //       const userIds = school.users.map((user) => user._id);
-  //       await this.userModel.updateMany(
-  //         { _id: { $in: userIds } },
-  //         { deletedAt: new Date() },
-  //         { session },
-  //       );
-  //     }
-
-  //     if (school.admin) {
-  //       await this.userModel.findByIdAndUpdate(
-  //         school.admin._id,
-  //         { deletedAt: new Date() },
-  //         { session },
-  //       );
-  //     }
-
-  //     await this.schoolModel.findByIdAndUpdate(
-  //       schoolId,
-  //       { deletedAt: new Date() },
-  //       { session },
-  //     );
-
-  //     await session.commitTransaction();
-
-  //     this.logger.log(`School with ID ${schoolId} deleted successfully`);
-  //   } catch (error) {
-  //     await session.abortTransaction();
-  //     this.logger.error('Error deleting school', error);
-  //     throw error;
-  //   } finally {
-  //     session.endSession();
-  //   }
-  // }
+ 
 
   async deleteSchool(schoolId: string): Promise<void> {
     const session = await this.schoolModel.db.startSession();

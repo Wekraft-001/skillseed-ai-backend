@@ -2,7 +2,6 @@ import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { User } from './users/user.schema';
 import { UserRole } from 'src/common/interfaces';
-import { Type } from '@nestjs/common';
 
 @Schema({ timestamps: true })
 export class School extends Document {

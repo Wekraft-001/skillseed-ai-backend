@@ -64,11 +64,6 @@ export class AuthController {
     return this.authService.registerAdminOrParent(dto);
   }
 
-  
-
-
-
-
   @ApiTags('Authentication')
   @ApiResponse({
     status: HttpStatus.CREATED,
@@ -129,8 +124,15 @@ export class AuthController {
     return this.authService.schoolSignin(dto);
   }
 
+  @Post('mentor/signin')
+  async mentorLogin(@Body() dto: LoginDto) {
+    return this.authService.mentorSignin(dto);
+  }
+
   @Post('child/signin')
-  async childLogin(@Body() credentials: {firstName: string, password: string}) {
-    return this.authService.childLogin(credentials)
+  async childLogin(
+    @Body() credentials: { firstName: string; password: string },
+  ) {
+    return this.authService.childLogin(credentials);
   }
 }

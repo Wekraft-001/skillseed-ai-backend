@@ -9,6 +9,7 @@ import {
   User,
   School,
   ProjectShowcase,
+  Mentor,
 } from './modules/schemas';
 import { LoggerModule } from './common/logger/logger.module';
 import { UserModule } from './modules/users/user.module';
@@ -17,6 +18,7 @@ import { SchoolModule } from './modules/dashboard/modules/school.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { DashboardModule } from './modules/dashboard/modules/dashboard.module';
 import { SubscriptionModule } from './subscription/subscription.module';
+import { MentorModule } from './modules/dashboard/modules/mentor.module';
 
 @Module({
   imports: [
@@ -24,9 +26,9 @@ import { SubscriptionModule } from './subscription/subscription.module';
       isGlobal: true,
       envFilePath: '.env',
       validate: (config) => {
-        if(!config.MONGO_URI) throw new Error('MONGO_URI is not defined');
+        if (!config.MONGO_URI) throw new Error('MONGO_URI is not defined');
         return config;
-      }
+      },
       // envFilePath: process.env.NODE_ENV === 'production' ? '.env.development',
     }),
     LoggerModule,
@@ -44,7 +46,8 @@ import { SubscriptionModule } from './subscription/subscription.module';
     AiModule,
     SchoolModule,
     DashboardModule,
-    SubscriptionModule
+    SubscriptionModule,
+    MentorModule,
   ],
   controllers: [AppController],
   providers: [AppService],

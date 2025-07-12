@@ -7,7 +7,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { LoggerModule } from 'src/common/logger/logger.module';
-import { School, SchoolSchema, User, UserSchema } from '../schemas';
+import { Mentor, MentorSchema, School, SchoolSchema, User, UserSchema } from '../schemas';
 import { SubscriptionModule } from 'src/subscription/subscription.module';
 
 @Module({
@@ -26,6 +26,7 @@ import { SubscriptionModule } from 'src/subscription/subscription.module';
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: School.name, schema: SchoolSchema },
+      { name: Mentor.name, schema: MentorSchema },
     ]),
     LoggerModule,
     SubscriptionModule

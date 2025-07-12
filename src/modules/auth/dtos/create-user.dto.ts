@@ -31,7 +31,7 @@ export class CreateStudentDto {
   lastName: string;
 
   @IsNumber()
-  @Transform(({ value }) => parseInt(value) )
+  @Transform(({ value }) => parseInt(value))
   age: number;
 
   @IsString()
@@ -60,6 +60,8 @@ export class CreateMentorDto {
   specialty: string;
   email: string;
   phoneNumber: string;
+  city: string;
+  country: string;
   image?: string;
 }
 

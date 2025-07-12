@@ -9,6 +9,7 @@ import {
   User,
   School,
   ProjectShowcase,
+  Mentor,
 } from './modules/schemas';
 import { LoggerModule } from './common/logger/logger.module';
 import { UserModule } from './modules/users/user.module';
@@ -19,6 +20,7 @@ import { DashboardModule } from './modules/dashboard/modules/dashboard.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { RedisModule } from './Redis/redis.module';
 import { TransactionModule } from './modules/dashboard/modules/transaction.module';
+import { MentorModule } from './modules/dashboard/modules/mentor.module';
 
 @Module({
   imports: [
@@ -26,9 +28,9 @@ import { TransactionModule } from './modules/dashboard/modules/transaction.modul
       isGlobal: true,
       envFilePath: '.env',
       validate: (config) => {
-        if(!config.MONGO_URI) throw new Error('MONGO_URI is not defined');
+        if (!config.MONGO_URI) throw new Error('MONGO_URI is not defined');
         return config;
-      }
+      },
       // envFilePath: process.env.NODE_ENV === 'production' ? '.env.development',
     }),
     LoggerModule,
@@ -49,6 +51,7 @@ import { TransactionModule } from './modules/dashboard/modules/transaction.modul
     SubscriptionModule,
     RedisModule,
     TransactionModule
+    MentorModule,
   ],
   controllers: [AppController],
   providers: [AppService],

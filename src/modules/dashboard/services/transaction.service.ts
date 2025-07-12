@@ -7,7 +7,11 @@ import {
 import { ClientSession, Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { LoggerService } from 'src/common/logger/logger.service';
-import { CreateTransactionDto, PaymentStatus, transactionType } from 'src/common/interfaces';
+import {
+  CreateTransactionDto,
+  PaymentStatus,
+  transactionType,
+} from 'src/common/interfaces';
 import { School, User } from 'src/modules/schemas';
 import { EmailService } from 'src/common/utils/mailing/email.service';
 import { RedisService } from 'src/Redis/redis.service';
@@ -89,7 +93,7 @@ export class TransactionService {
 
       const populatedSchool = await this.schoolModel
         .findById(school._id)
-        .populate('createdBy superAdmin students transactions')
+        .populate('createdBy students transactions')
         .exec();
 
       return {
@@ -102,6 +106,15 @@ export class TransactionService {
       throw error;
     } finally {
       session.endSession();
+    }
+  }
+
+  async getAllTransaction() {
+    try {
+      return await this.transactionModel.find().populate('school').exec();
+    } catch (error) {
+      this.logger.error('Failed to fetch all transactions');
+      throw error;
     }
   }
 

@@ -46,6 +46,19 @@ export class TransactionController {
     }
   }
 
+  @Get('all')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN)
+  async getAllTransactions() {
+    try {
+      return await this.transactionService.getAllTransaction();
+      
+    } catch (error) {
+      this.logger.error('Failed to fetch all transactions');
+      throw error;
+    }
+  }
+
   @Get('pending-schools')
   @Roles(UserRole.SUPER_ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)

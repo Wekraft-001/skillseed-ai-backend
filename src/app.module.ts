@@ -18,6 +18,8 @@ import { SchoolModule } from './modules/dashboard/modules/school.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { DashboardModule } from './modules/dashboard/modules/dashboard.module';
 import { SubscriptionModule } from './subscription/subscription.module';
+import { RedisModule } from './Redis/redis.module';
+import { TransactionModule } from './modules/dashboard/modules/transaction.module';
 import { MentorModule } from './modules/dashboard/modules/mentor.module';
 
 @Module({
@@ -47,6 +49,8 @@ import { MentorModule } from './modules/dashboard/modules/mentor.module';
     SchoolModule,
     DashboardModule,
     SubscriptionModule,
+    RedisModule,
+    TransactionModule
     MentorModule,
   ],
   controllers: [AppController],

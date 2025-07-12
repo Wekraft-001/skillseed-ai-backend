@@ -1,7 +1,7 @@
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { User } from './users/user.schema';
-import { UserRole } from 'src/common/interfaces';
+import { PaymentStatus, UserRole } from 'src/common/interfaces';
 
 @Schema({ timestamps: true })
 export class School extends Document {
@@ -52,8 +52,15 @@ export class School extends Document {
   @Prop({ type: Types.ObjectId, ref: 'User', index: true })
   createdBy?: Types.ObjectId;
 
+  @Prop({ type: [Types.ObjectId], ref: 'Transaction', index: true})
+  transactions: Types.ObjectId[];
+
+  @Prop({enum: PaymentStatus, default: PaymentStatus.PENDING})
+  status: PaymentStatus;
+
   @Prop({ default: null, index: true })
   deletedAt: Date;
+
 }
 
 export const SchoolSchema = SchemaFactory.createForClass(School);

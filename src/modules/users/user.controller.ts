@@ -63,7 +63,7 @@ export class UserController {
   @ApiTags('User Profile')
   @ApiOkResponse({ type: UserProfileDto })
   @Get('me')
-  getProfile(@CurrentUser() user) {
+  async getProfile(@CurrentUser() user: User) {
     return user;
   }
 

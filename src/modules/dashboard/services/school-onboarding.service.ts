@@ -8,6 +8,8 @@ import { PasswordService } from '.';
 import { CreateSchoolDto, UserRole } from 'src/common/interfaces';
 import { uploadToAzureStorage } from 'src/common/utils/azure-upload.util';
 import { EmailService } from '../../../common/utils/mailing/email.service';
+import { ConfigService } from '@nestjs/config';
+import { RedisService } from 'src/Redis/redis.service';
 
 @Injectable()
 export class SchoolOnboardingService {
@@ -17,6 +19,8 @@ export class SchoolOnboardingService {
     private readonly logger: LoggerService,
     private readonly passwordService: PasswordService,
     private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
   ) {}
 
   async onboardSchool(
@@ -34,13 +38,11 @@ export class SchoolOnboardingService {
       const hashedPassword =
         await this.passwordService.hashPassword(tempPassword);
 
-      // Upload logo to Azure
       let logoUrl = '';
       if (logoFile) {
         logoUrl = await uploadToAzureStorage(logoFile);
       }
 
-      // Create the school document
       const newSchool = new this.schoolModel({
         schoolName: createSchoolDto.schoolName,
         schoolType: createSchoolDto.schoolType,
@@ -66,15 +68,17 @@ export class SchoolOnboardingService {
 
       await session.commitTransaction();
 
+      // Storing the password temporarily;
+      await this.storeTemporaryPassword(newSchool._id.toString(), tempPassword);
 
       // Send welcome email via Mailtrap
-      await this.emailService.sendSchoolOnboardingEmail(
-        newSchool.email,
-        tempPassword,
-      );
+      // await this.emailService.sendSchoolOnboardingEmail(
+      //   newSchool.email,
+      //   tempPassword,
+      // );
 
       this.logger.log(
-        `School onboarded: ${newSchool.schoolName} by ${superAdmin.email}`,
+        `School onboarded, payment status pending : ${newSchool.schoolName} by ${superAdmin.email}`,
       );
 
       return populatedSchool;
@@ -84,6 +88,30 @@ export class SchoolOnboardingService {
       throw error;
     } finally {
       session.endSession();
+    }
+  }
+
+  private async storeTemporaryPassword(
+    schoolId: string,
+    password: string,
+  ): Promise<void> {
+    try {
+      const key = `temp_password_${schoolId}`;
+      const ttlHours =
+        this.configService.get<number>('TEMP_PASSWORD_TTL_HOURS') || 24;
+      const ttlSeconds = ttlHours * 3600;
+
+      await this.redisService.set(key, password, ttlSeconds);
+
+      this.logger.log(
+        `Temporary password stored for school ${schoolId} with TTL: ${ttlHours} hours`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to store temporary password for school ${schoolId}:`,
+        error,
+      );
+      throw new Error('Failed to store temporary password');
     }
   }
 
@@ -101,8 +129,6 @@ export class SchoolOnboardingService {
       throw error;
     }
   }
-
- 
 
   async deleteSchool(schoolId: string): Promise<void> {
     const session = await this.schoolModel.db.startSession();
@@ -132,41 +158,6 @@ export class SchoolOnboardingService {
       session.endSession();
     }
   }
-
-  // async restoreSchool(schoolId: string) {
-  //   const session = await this.schoolModel.db.startSession();
-  //   session.startTransaction();
-
-  //   try {
-  //     await this.schoolModel.findByIdAndUpdate(
-  //       schoolId,
-  //       { $unset: { deletedAt: 1 } },
-  //       { session },
-  //     );
-
-  //     await this.userModel.updateMany(
-  //       { school: schoolId },
-  //       { $unset: { deletedAt: 1 } },
-  //       { session },
-  //     );
-
-  //     const school = await this.schoolModel.findById(schoolId).session(session);
-  //     if (school?.admin) {
-  //       await this.userModel.findByIdAndUpdate(
-  //         school.admin,
-  //         { $unset: { deletedAt: 1 } },
-  //         { session },
-  //       );
-  //     }
-
-  //     await session.commitTransaction();
-  //   } catch (error) {
-  //     // await session.rollbackTransaction()
-  //     throw error;
-  //   } finally {
-  //     session.endSession();
-  //   }
-  // }
 
   async restoreSchool(schoolId: string): Promise<void> {
     const session = await this.schoolModel.db.startSession();

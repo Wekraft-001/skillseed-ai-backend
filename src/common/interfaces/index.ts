@@ -9,4 +9,9 @@ export * from './payment-request.interface';
 export * from './subscription-status.enum';
 export * from './create-subscription.dto';
 export * from './verify-payment.dto';
+export * from './payment-methods-interface.enum';
+export * from './payment-status.enum';
+export * from './transaction.dto';
+export * from './transaction-type.enum';
+export * from './transaction-response.interface';
 export * from './create-mentor.dto'

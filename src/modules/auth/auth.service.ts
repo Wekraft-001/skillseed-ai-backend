@@ -8,7 +8,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { CreateAdminOrParentDto, CreateStudentDto } from './dtos';
-import { User, UserDocument, School } from '../schemas';
+import { User, UserDocument, School, Mentor } from '../schemas';
 import { JwtService } from '@nestjs/jwt';
 import { LoggerService } from 'src/common/logger/logger.service';
 import { UserRole } from 'src/common/interfaces';
@@ -22,6 +22,8 @@ export class AuthService {
     private readonly userModel: Model<UserDocument>,
     @InjectModel(School.name)
     private readonly schoolModel: Model<School>,
+    @InjectModel(Mentor.name)
+    private readonly mentorModel: Model<Mentor>,
     private readonly jwtService: JwtService,
     private readonly logger: LoggerService,
     private readonly subscriptionService: SubscriptionService,
@@ -285,6 +287,44 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(payload),
       user: schoolAdmin,
+    };
+  }
+
+  async mentorSignin(credentials: { email: string; password: string }) {
+    const { email, password } = credentials;
+
+    const mentor = await this.mentorModel
+      .findOne({ email, role: UserRole.MENTOR })
+      .populate('createdBy')
+      .select('+password')
+      .lean();
+
+    if (!mentor) {
+      this.logger.warn(
+        `Mentor login failed: No school found with email ${email}`,
+      );
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, mentor.password);
+    if (!isPasswordValid) {
+      this.logger.warn(`Mentor login failed: Invalid password for ${email}`);
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const payload = {
+      sub: mentor._id,
+      email: mentor.email,
+      role: mentor.role,
+      name: mentor.firstName,
+      createdBy: mentor.createdBy,
+    };
+
+    this.logger.log(`Mentor ${mentor.firstName} logged in successfully`);
+
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: mentor,
     };
   }
 }

@@ -9,3 +9,4 @@ export * from './payment-request.interface';
 export * from './subscription-status.enum';
 export * from './create-subscription.dto';
 export * from './verify-payment.dto';
+export * from './create-mentor.dto'

@@ -94,7 +94,7 @@ export class DashboardService {
         timestamp: new Date().toISOString(),
         userId: (user as any)._id,
         summary,
-        currentUser: user
+        currentUser: user,
       };
 
       return {
@@ -264,8 +264,8 @@ export class DashboardService {
       students,
       showcases: [],
       analytics: {
-      totalStudents: students.length,
-    },
+        totalStudents: students.length,
+      },
     };
   }
 
@@ -275,5 +275,17 @@ export class DashboardService {
       totalBadges: 0,
       totalShowcases: 0,
     };
+  }
+
+  async getStudentsForUser(user: User) {
+    const query: any = { role: UserRole.STUDENT };
+
+    if (user.role === UserRole.SCHOOL_ADMIN && user.school) {
+      query.school = user.school;
+    } else if (user.role === UserRole.PARENT) {
+      query.createdBy = user._id;
+    }
+
+    return this.userModel.find(query).populate('createdBy').lean();
   }
 }

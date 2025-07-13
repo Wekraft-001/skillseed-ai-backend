@@ -22,9 +22,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     email: string;
     role?: UserRole;
     school?: School;
+    schoolName?: string;
+    studentsLimit?: number;
     createdBy?: User;
   }) {
-
     if (!payload.sub) {
       console.log('ERROR: Missing sub in payload');
       throw new UnauthorizedException('Missing user ID in token');
@@ -32,6 +33,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (!payload.role) {
       throw new UnauthorizedException('Missing role in the token payload');
+    }
+
+    if (payload.role === UserRole.SCHOOL_ADMIN) {
+      return {
+        _id: payload.sub,
+        email: payload.email,
+        role: payload.role,
+        schoolName: payload.schoolName,
+        studentsLimit: payload.studentsLimit,
+        createdBy: payload.createdBy,
+        school: payload.school,
+      };
     }
 
     const user = {

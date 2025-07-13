@@ -48,7 +48,6 @@ export class AuthService {
       const newUser = new this.userModel({
         ...createDto,
         password: hashedPassword,
-        // role: createDto.role || UserRole.STUDENT,
       });
       const savedUser = await newUser.save();
 
@@ -61,10 +60,14 @@ export class AuthService {
 
   async registerStudent(
     createStudentDto: CreateStudentDto,
-    currentUser: User,
+    currentUser: User | School,
     image?: Express.Multer.File,
   ) {
-    if (![UserRole.PARENT, UserRole.SCHOOL_ADMIN].includes(currentUser.role)) {
+    if (
+      ![UserRole.PARENT, UserRole.SCHOOL_ADMIN].includes(
+        currentUser.role as UserRole,
+      )
+    ) {
       throw new BadRequestException(
         'Only School Admin or Parent can add student',
       );
@@ -86,12 +89,48 @@ export class AuthService {
     try {
       session.startTransaction();
 
+      const schoolId =
+        currentUser.role === UserRole.SCHOOL_ADMIN
+          ? (currentUser as School)._id
+          : (currentUser as User).school;
+
+      if (currentUser.role === UserRole.SCHOOL_ADMIN) {
+        const school = currentUser as School;
+
+        console.log('********debug: sCHOOL Limit check');
+        console.log('********debu: student limit', school.studentsLimit);
+        console.log('Is studentsLimit null?', school.studentsLimit === null);
+        console.log(
+          'Is studentsLimit undefined?',
+          school.studentsLimit === undefined,
+        );
+        console.log('********debug: School full object', school);
+
+        if (
+          school.studentsLimit !== null &&
+          school.studentsLimit !== undefined
+        ) {
+          const currentStudentCount = await this.userModel.countDocuments({
+            school: schoolId,
+            role: UserRole.STUDENT,
+            deletedAt: null,
+          });
+
+          if (currentStudentCount >= school.studentsLimit) {
+            throw new BadRequestException(
+              `Cannot add more students. School has reached its maximum of ${school.studentsLimit} students. Please purchase additional student slots to add more students`,
+            );
+          }
+        }
+      }
+
       const hashedPassword = await bcrypt.hash(createStudentDto.password, 10);
 
       let imageUrl = '';
       if (image) {
         imageUrl = await uploadToAzureStorage(image);
       }
+
       const newUser = new this.userModel({
         firstName: createStudentDto.firstName,
         lastName: createStudentDto.lastName,
@@ -100,15 +139,25 @@ export class AuthService {
         imageUrl,
         role: createStudentDto.role,
         password: hashedPassword,
-        createdBy: currentUser._id,
-        school: currentUser.school,
+        // createdBy:
+        //   (currentUser as User)._id || (currentUser as School).createdBy,
+        // school: (currentUser as User).school || (currentUser as School)._id,
+        createdBy:
+          currentUser.role === UserRole.SCHOOL_ADMIN
+            ? (currentUser as School).createdBy
+            : (currentUser as User)._id,
+        school: (currentUser as User).school,
       });
 
       await newUser.save({ session });
 
       await this.schoolModel.findByIdAndUpdate(
-        currentUser.school,
-        { $push: { students: newUser._id } },
+        schoolId,
+        {
+          $push: { students: newUser._id },
+          // Optionally increment a counter if you have one
+          // $inc: { currentStudentCount: 1 }
+        },
         { session },
       );
 
@@ -127,11 +176,8 @@ export class AuthService {
         .exec();
 
       this.logger.log(
-        `Student registered: ${newUser.firstName} ${newUser.lastName} by ${currentUser.firstName}`,
+        `Student registered: ${newUser.firstName} ${newUser.lastName} by ${(currentUser as User).firstName}`,
       );
-
-      console.log('Current user:', currentUser);
-      console.log('Current user school:', currentUser.school);
 
       return populatedStudent;
     } catch (error) {
@@ -142,39 +188,6 @@ export class AuthService {
       session.endSession();
     }
   }
-
-  // async signin(firstName: string, password: string) {
-  //   this.logger.setContext('AuthService');
-
-  //   const user = await this.userModel
-  //     .findOne({ firstName })
-  //     .select('+password') // Explicitly include password field
-  //     .lean()
-  //     .exec();
-
-  //   if (!user) {
-  //     this.logger.warn(`Invalid credentials for user: ${firstName}`);
-  //     throw new UnauthorizedException('Invalid credentials');
-  //   }
-
-  //   const isPasswordValid = await bcrypt.compare(password, user.password);
-  //   if (!isPasswordValid) {
-  //     this.logger.warn(`Invalid password attempt for user ${firstName}`);
-  //     throw new UnauthorizedException('Invalid credentials: password');
-  //   }
-
-  //   if (!user.role) {
-  //     this.logger.warn(`User ${firstName} does not have a role assigned`);
-  //     throw new UnauthorizedException('User has not role assigned');
-  //   }
-
-  //   this.logger.log(`User ${firstName} signed successfully`);
-  //   // return this.login(user);
-  //   return this.login({
-  //     ...user,
-  //     _id: user._id.toString(),
-  //   });
-  // }
 
   async childLogin(credentials: { firstName: string; password: string }) {
     const childUser = await this.userModel
@@ -275,8 +288,10 @@ export class AuthService {
 
     const payload = {
       sub: schoolAdmin._id,
+      schoolName: schoolAdmin.schoolName,
       email: schoolAdmin.email,
       role: schoolAdmin.role,
+      studentsLimit: schoolAdmin.studentsLimit,
       name: schoolAdmin.schoolName,
       createdBy: schoolAdmin.createdBy,
       school: schoolAdmin._id,

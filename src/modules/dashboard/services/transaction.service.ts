@@ -28,7 +28,6 @@ export class TransactionService {
 
   async createTransaction(
     createTransactionDto: CreateTransactionDto,
-    superAdminUser: User,
   ): Promise<{ transaction: Transaction; school: School }> {
     const session: ClientSession = await this.schoolModel.db.startSession();
 
@@ -64,6 +63,7 @@ export class TransactionService {
       await newTransaction.save({ session });
 
       school.status = PaymentStatus.COMPLETED;
+      school.studentsLimit = newTransaction.numberOfKids;
       school.transactions.push(newTransaction._id);
       await school.save({ session });
 

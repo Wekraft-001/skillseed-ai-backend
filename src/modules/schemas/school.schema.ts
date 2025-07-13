@@ -43,6 +43,9 @@ export class School extends Document {
   @Prop({ index: true })
   password?: string;
 
+  @Prop({ index: true, default: null})
+  studentsLimit: number;
+
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], index: true })
   students: Types.ObjectId[];
 

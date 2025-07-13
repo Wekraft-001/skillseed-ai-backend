@@ -32,7 +32,6 @@ export class TransactionController {
     try {
       const result = await this.transactionService.createTransaction(
         createTransactionDto,
-        user,
       );
 
       return {

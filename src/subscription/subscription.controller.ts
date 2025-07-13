@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/modules/auth/guards';
 import { SubscriptionService } from './subscription.service';
-import { UserRole } from 'src/common/interfaces';
+import { CardPaymentRequest, UserRole } from 'src/common/interfaces';
 import { CurrentUser } from 'src/common/decorators';
 import { User } from 'src/modules/schemas';
 import { CreateSubscriptionDto } from 'src/common/interfaces';
@@ -29,9 +29,20 @@ export class SubscriptionController {
       throw new BadRequestException('Only parents can create subscriptions');
     }
 
-    return this.subscriptionService.createSubscription(
-      user,
-      createSubscriptionDto.phoneNumber,
+     const cardPaymentData: CardPaymentRequest = {
+      amount: createSubscriptionDto.amount,
+      currency: createSubscriptionDto.currency,
+      customer: createSubscriptionDto.customer,
+      card: createSubscriptionDto.card,
+      reference: '', // This will be set in the service
+      redirect_url: createSubscriptionDto.redirect_url,
+      meta: createSubscriptionDto.meta || {},
+    };
+
+    return this.subscriptionService.createSubscriptionWithCardPay(
+      user._id.toString(),
+      createSubscriptionDto.planId,
+      cardPaymentData,
     );
   }
 

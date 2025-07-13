@@ -1,8 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   Transaction,
-  TransactionDocument,
-  TransactionSchema,
 } from 'src/modules/schemas/transaction.schema';
 import { ClientSession, Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';

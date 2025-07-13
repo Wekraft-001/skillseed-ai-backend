@@ -38,23 +38,33 @@ export class AuthService {
       );
     }
 
-    const existing = await this.userModel.findOne({ email: createDto.email });
-    if (existing) {
-      throw new ConflictException('Email already in use');
-    }
+    const session: ClientSession = await this.userModel.db.startSession();
+
+    let existing;
+    let newUser;
 
     try {
-      const hashedPassword = await bcrypt.hash(createDto.password, 10);
-      const newUser = new this.userModel({
-        ...createDto,
-        password: hashedPassword,
-      });
-      const savedUser = await newUser.save();
+      existing = await this.userModel.findOne({ email: createDto.email });
+      if (existing) {
+        throw new ConflictException('Email already in use');
+      }
 
-      return savedUser.toObject();
+      await session.withTransaction(async () => {
+        const hashedPassword = await bcrypt.hash(createDto.password, 10);
+        newUser = new this.userModel({
+          ...createDto,
+          password: hashedPassword,
+        });
+        await newUser.save({ session });
+      });
+
+      return newUser.toObject();
+      
     } catch (error) {
       this.logger.error('Error registering user', error);
       throw error;
+    } finally {
+      await session.endSession();
     }
   }
 
@@ -96,15 +106,6 @@ export class AuthService {
 
       if (currentUser.role === UserRole.SCHOOL_ADMIN) {
         const school = currentUser as School;
-
-        console.log('********debug: sCHOOL Limit check');
-        console.log('********debu: student limit', school.studentsLimit);
-        console.log('Is studentsLimit null?', school.studentsLimit === null);
-        console.log(
-          'Is studentsLimit undefined?',
-          school.studentsLimit === undefined,
-        );
-        console.log('********debug: School full object', school);
 
         if (
           school.studentsLimit !== null &&

@@ -2,12 +2,12 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { SubscriptionStatus } from 'src/common/interfaces';
+import { CardPaymentRequest, PaymentStatus, SubscriptionStatus } from 'src/common/interfaces';
 import {
   Subscription,
   SubscriptionDocument,
 } from 'src/modules/schemas/subscription.schema';
-import { User } from 'src/modules/schemas';
+import { User, UserDocument } from 'src/modules/schemas';
 import { PaymentService } from '../payment/payment.service';
 import { LoggerService } from 'src/common/logger/logger.service';
 
@@ -16,70 +16,51 @@ export class SubscriptionService {
   constructor(
     @InjectModel(Subscription.name)
     private subscriptionModel: Model<SubscriptionDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
     private paymentService: PaymentService,
     private logger: LoggerService,
   ) {}
 
-  async createSubscription(user: User, phoneNumber: string) {
+  async createSubscriptionWithCardPay(
+    userId: string,
+    planId: string,
+    cardPaymentData: CardPaymentRequest,
+  ) {
     try {
-      const existingSubscription = await this.getActiveSubscription(
-        user._id.toString(),
-      );
-      if (existingSubscription) {
-        throw new BadRequestException(
-          'You already have an active subscription',
-        );
+      const user = await this.userModel.findById(userId);
+      if (!user) {
+        throw new BadRequestException('User not found');
       }
 
-      const transactionRef = this.paymentService.generateTransactionReference();
-      const startDate = new Date();
-      const endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+      const transactionRef = `sub_${Date.now()}_${userId}`;
+      cardPaymentData.reference = transactionRef;
+
+      const paymentResult =
+        await this.paymentService.processCardPayment(cardPaymentData);
 
       const subscription = new this.subscriptionModel({
-        user: user._id,
-        amount: 72000,
-        currency: 'RWF',
+        user: userId,
+        plan: planId,
         transactionRef,
-        status: SubscriptionStatus.PENDING,
-        startDate,
-        endDate,
-        maxChildren: 30,
-        childrenCount: 0,
+        status: PaymentStatus.PENDING,
         isActive: false,
+        flutterwaveTransactionId: paymentResult.charge.id,
+        flutterwaveCustomerId: paymentResult.customer.id,
+        flutterwavePaymentMethodId: paymentResult.paymentMethod.id,
+        amount: cardPaymentData.amount,
+        currency: cardPaymentData.currency,
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        childrenCount: 0,
+        maxChildren: 5,
       });
 
-      await subscription.save();
-
-      // Initiate payment
-      const paymentData = {
-        amount: 72000,
-        currency: 'RWF',
-        email: user.email,
-        phone_number: phoneNumber,
-        fullname: `${user.firstName} ${user.lastName}`,
-        tx_ref: transactionRef,
-        order_id: `SUB_${subscription._id}`,
-        meta: {
-          subscriptionId: subscription._id,
-          userId: user._id,
-          purpose: 'Monthly subscription for adding children',
-        },
-      };
-
-      const paymentResponse =
-        await this.paymentService.initiateMobileMoneyPayment(paymentData);
-
-      // Update subscription with payment data
-      subscription.paymentData = paymentResponse;
-      if (paymentResponse.data?.id) {
-        subscription.flutterwaveTransactionId = paymentResponse.data.id;
-      }
       await subscription.save();
 
       this.logger.log(
         `Subscription created for user ${user._id}: ${transactionRef}`,
       );
-      return { subscription, paymentResponse };
+      return { subscription, charge: paymentResult.charge, authorizationUrl: paymentResult.charge.authorization_url };
     } catch (error) {
       this.logger.error('Error creating subscription', error);
       throw error;
@@ -107,7 +88,6 @@ export class SubscriptionService {
         verificationResponse.status === 'success' &&
         verificationResponse.data.status === 'successful'
       ) {
-        // Activate subscription
         subscription.status = SubscriptionStatus.ACTIVE;
         subscription.isActive = true;
         await subscription.save();

@@ -14,4 +14,5 @@ export * from './payment-status.enum';
 export * from './transaction.dto';
 export * from './transaction-type.enum';
 export * from './transaction-response.interface';
-export * from './create-mentor.dto'
+export * from './create-mentor.dto';
+export * from './card.interface';

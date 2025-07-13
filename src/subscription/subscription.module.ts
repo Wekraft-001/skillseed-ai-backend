@@ -2,15 +2,22 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { SubscriptionController } from './subscription.controller';
 import { SubscriptionService } from './subscription.service';
-import { Subscription, SubscriptionSchema } from 'src/modules/schemas/subscription.schema';
+import {
+  Subscription,
+  SubscriptionSchema,
+} from 'src/modules/schemas/subscription.schema';
 import { PaymentModule } from 'src/payment/payment.module';
 import { LoggerModule } from 'src/common/logger/logger.module';
+import { User, UserSchema } from 'src/modules/schemas';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Subscription.name, schema: SubscriptionSchema }]),
+    MongooseModule.forFeature([
+      { name: Subscription.name, schema: SubscriptionSchema },
+      { name: User.name, schema: UserSchema },
+    ]),
     PaymentModule,
-    LoggerModule
+    LoggerModule,
   ],
   controllers: [SubscriptionController],
   providers: [SubscriptionService],

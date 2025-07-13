@@ -21,6 +21,7 @@ import { SubscriptionModule } from './subscription/subscription.module';
 import { RedisModule } from './Redis/redis.module';
 import { TransactionModule } from './modules/dashboard/modules/transaction.module';
 import { MentorModule } from './modules/dashboard/modules/mentor.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { MentorModule } from './modules/dashboard/modules/mentor.module';
     RedisModule,
     TransactionModule,
     MentorModule,
+    PaymentModule
   ],
   controllers: [AppController],
   providers: [AppService],

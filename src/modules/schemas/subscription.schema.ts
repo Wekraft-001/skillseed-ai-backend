@@ -1,6 +1,6 @@
-// src/subscription/subscription.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import mongoose from 'mongoose';
 import { User } from './users/user.schema';
 import { SubscriptionStatus } from 'src/common/interfaces';
 
@@ -15,11 +15,17 @@ export class Subscription {
   @Prop({ default: 'RWF' })
   currency: string;
 
+  @Prop({ type: String })
+  childTempId?: string;
+
   @Prop({ required: true, unique: true })
   transactionRef: string;
 
   @Prop({ default: null })
   flutterwaveTransactionId: string;
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
+  child: Types.ObjectId;
 
   @Prop()
   flutterwaveCardToken?: string;

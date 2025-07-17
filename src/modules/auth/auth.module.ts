@@ -9,6 +9,7 @@ import { PassportModule } from '@nestjs/passport';
 import { LoggerModule } from 'src/common/logger/logger.module';
 import { Mentor, MentorSchema, School, SchoolSchema, User, UserSchema } from '../schemas';
 import { SubscriptionModule } from 'src/subscription/subscription.module';
+import { Subscription, SubscriptionSchema } from '../schemas/subscription.schema';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { SubscriptionModule } from 'src/subscription/subscription.module';
       { name: User.name, schema: UserSchema },
       { name: School.name, schema: SchoolSchema },
       { name: Mentor.name, schema: MentorSchema },
+      { name: Subscription.name, schema: SubscriptionSchema}
     ]),
     LoggerModule,
     SubscriptionModule

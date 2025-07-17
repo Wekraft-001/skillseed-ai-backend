@@ -43,6 +43,9 @@ export class CreateStudentDto {
   @IsString()
   @MinLength(6)
   password: string;
+
+  @IsString()
+  childTempId?: string;
 }
 
 export class LoginDto {

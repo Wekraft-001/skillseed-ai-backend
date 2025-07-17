@@ -5,7 +5,7 @@ import {
   HttpException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { ClientSession, Model } from 'mongoose';
 import {
   CreateSubscriptionDto,
   PaymentStatus,
@@ -42,8 +42,11 @@ export class SubscriptionService {
         throw new BadRequestException('User not found');
       }
 
+      const childTempId = `student-${uuidv4()}`;
       const transactionRef = `subscription-${uuidv4()}`;
-      this.logger.log(`Generated transactionRef: ${transactionRef}`);
+      this.logger.log(
+        `Generated transactionRef: ${transactionRef} ********* Generated childTempId: ${childTempId}`,
+      );
 
       const customerData = {
         amount: subscriptionData.amount,
@@ -62,7 +65,7 @@ export class SubscriptionService {
         email: user.email,
         address: {
           city: 'Kigali',
-          country: 'RW',
+          country: 'USD',
           line1: '',
           line2: '',
           postal_code: '',
@@ -94,6 +97,7 @@ export class SubscriptionService {
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         childrenCount: 0,
+        childTempId,
         maxChildren: 30,
       });
 
@@ -106,9 +110,82 @@ export class SubscriptionService {
         subscription,
         authorizationUrl: hostedLink,
         reference: transactionRef,
+        childTempId,
       };
     } catch (error) {
       this.logger.error('Error creating subscription', error);
+      throw new BadRequestException(
+        `Failed to create subscription: ${error.message}`,
+      );
+    }
+  }
+
+  async createSubscriptionWithBankTransfer(
+    userId: string,
+    subscriptionData: CreateSubscriptionDto,
+  ) {
+    try {
+      const user = await this.userModel.findById(userId);
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      const transactionRef = `subscription-${uuidv4()}`;
+      this.logger.log(`Generated transactionRef: ${transactionRef}`);
+
+      const customerData = {
+        amount: subscriptionData.amount,
+        currency: subscriptionData.currency || 'RWF',
+        tx_ref: transactionRef,
+        email: user.email,
+        name: `${user.firstName || ''} ${user.lastName || ''}`,
+        phonenumber: `+${user.phoneNumber.toString()}`,
+        frequency: 'once', // Optional: for recurring, set to 'daily', 'weekly', etc.
+        is_permanent: false, // Set to true for static virtual account
+      };
+
+      this.logger.log(`Creating virtual account for user ${userId}`);
+      const virtualAccountResponse =
+        await this.paymentService.createFlutterwaveVirtualAccount(customerData);
+
+      // if (!virtualAccountResponse.data || !virtualAccountResponse.data.account_number) {
+      //   this.logger.error('Failed to generate virtual account', JSON.stringify(virtualAccountResponse));
+      //   throw new BadRequestException('Failed to generate virtual account');
+      // }
+
+      const subscription = new this.subscriptionModel({
+        user: userId,
+        transactionRef,
+        status: PaymentStatus.PENDING,
+        isActive: false,
+        amount: subscriptionData.amount,
+        currency: subscriptionData.currency,
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        childrenCount: 0,
+        maxChildren: 30,
+        // virtualAccountDetails: {
+        //   accountNumber: virtualAccountResponse.data.account_number,
+        //   bankName: virtualAccountResponse.data.bank_name,
+        //   accountName: virtualAccountResponse.data.account_name,
+        // },
+      });
+
+      await subscription.save();
+      this.logger.log(
+        `Subscription created for user ${userId}: ${transactionRef}`,
+      );
+
+      return {
+        subscription,
+        virtualAccountDetails: virtualAccountResponse.data,
+        reference: transactionRef,
+      };
+    } catch (error) {
+      this.logger.error(
+        'Error creating subscription with bank transfer',
+        error,
+      );
       throw new BadRequestException(
         `Failed to create subscription: ${error.message}`,
       );
@@ -133,54 +210,6 @@ export class SubscriptionService {
       }
     } catch (error) {
       throw new HttpException(error.message || 'Verification failed', 500);
-    }
-  }
-
-  async handlePaymentWebhook(webhookData: any) {
-    let tx_ref: string | undefined;
-    try {
-      const {
-        tx_ref: txRefFromWebhook,
-        status,
-        id,
-        card_token,
-      } = webhookData.data;
-      tx_ref = txRefFromWebhook;
-      this.logger.log(`Processing webhook for transaction ${tx_ref}`);
-
-      const subscription = await this.subscriptionModel.findOne({
-        transactionRef: tx_ref,
-      });
-      if (!subscription) {
-        this.logger.error(`Subscription not found for transaction ${tx_ref}`);
-        throw new BadRequestException('Subscription not found');
-      }
-
-      if (status === 'successful') {
-        (subscription.status = SubscriptionStatus.ACTIVE),
-          (subscription.isActive = true);
-        subscription.flutterwaveCardToken =
-          card_token || subscription.flutterwaveCardToken;
-        subscription.endDate = new Date(
-          subscription.endDate.getTime() + 30 * 24 * 60 * 60 * 1000,
-        );
-        await subscription.save();
-        this.logger.log(`Subscription activated for transaction ${tx_ref}`);
-      } else if (status === 'failed') {
-        (subscription.status = SubscriptionStatus.CANCELLED),
-          await subscription.save();
-        this.logger.error(`Payment failed for transaction ${tx_ref}`);
-      }
-
-      return { status: 'success', message: 'Webhook processed' };
-    } catch (error) {
-      this.logger.error(
-        `Error processing webhook for transaction ${tx_ref ?? 'unknown'}`,
-        error,
-      );
-      throw new BadRequestException(
-        `Webhook processing failed: ${error.message}`,
-      );
     }
   }
 
@@ -241,6 +270,53 @@ export class SubscriptionService {
     }
   }
 
+  async incrementChildrenCount(userId: string): Promise<void> {
+    const subscription = await this.getActiveSubscription(userId);
+    if (subscription) {
+      subscription.childrenCount += 1;
+      await subscription.save();
+    }
+  }
+
+  async assignChildToSubscription(
+    parentId: string,
+    childId: string,
+    session?: ClientSession,
+  ) {
+    const subscription = await this.subscriptionModel.findOneAndUpdate(
+      {
+        parent: parentId,
+        status: 'ACTIVE',
+      },
+      {
+        $inc: { childrenCount: 1 },
+        $set: { child: childId },
+      },
+      { new: true, session },
+    );
+
+    if (!subscription) {
+      throw new Error('Active subscription not found for this parent');
+    }
+  }
+
+  async canAddChild(userId: string, childTempId?: string): Promise<boolean> {
+    const subscription = await this.subscriptionModel.findOne({
+      user: userId,
+      status: SubscriptionStatus.ACTIVE,
+      isActive: true,
+    });
+    if (!subscription) return false;
+
+    if (childTempId && subscription.childTempId !== childTempId) {
+      return false;
+    } 
+
+    const hasRoom = subscription.childrenCount < subscription.maxChildren;
+
+    return hasRoom;
+  }
+
   async getActiveSubscription(
     userId: string,
   ): Promise<SubscriptionDocument | null> {
@@ -250,21 +326,6 @@ export class SubscriptionService {
       isActive: true,
       endDate: { $gt: new Date() },
     });
-  }
-
-  async incrementChildrenCount(userId: string): Promise<void> {
-    const subscription = await this.getActiveSubscription(userId);
-    if (subscription) {
-      subscription.childrenCount += 1;
-      await subscription.save();
-    }
-  }
-
-  async canAddChild(userId: string): Promise<boolean> {
-    const subscription = await this.getActiveSubscription(userId);
-    if (!subscription) return false;
-
-    return subscription.childrenCount < subscription.maxChildren;
   }
 
   async getSubscriptionStatus(userId: string) {

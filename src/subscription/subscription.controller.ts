@@ -12,17 +12,25 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/modules/auth/guards';
 import { SubscriptionService } from './subscription.service';
-import { CardPaymentRequest, UserRole } from 'src/common/interfaces';
+import { CardPaymentRequest, PaymentStatus, SubscriptionStatus, UserRole } from 'src/common/interfaces';
 import { CurrentUser } from 'src/common/decorators';
 import { User } from 'src/modules/schemas';
 import { CreateSubscriptionDto } from 'src/common/interfaces';
 import { VerifyPaymentDto } from 'src/common/interfaces/verify-payment.dto';
 import { Response } from 'express';
+import { InjectModel } from '@nestjs/mongoose';
+import { Subscription } from 'rxjs';
+import { Model } from 'mongoose';
+import { SubscriptionDocument } from 'src/modules/schemas/subscription.schema';
 
 @Controller('subscriptions')
 @UseGuards(JwtAuthGuard)
 export class SubscriptionController {
-  constructor(private subscriptionService: SubscriptionService) {}
+  constructor(
+    private subscriptionService: SubscriptionService,
+    @InjectModel(Subscription.name)
+    private subscriptionModel: Model<SubscriptionDocument>,
+  ) {}
 
   @Post('subscribe')
   async createSubscription(
@@ -47,31 +55,24 @@ export class SubscriptionController {
   }
 
   @Get('success')
-  async handlePaymentSuccess(
-    @Query('transaction_id') transactionId: string,
-    @Query('tx_ref') txRef: string,
-    @Query('status') status: string,
-    @Res() res: Response,
-  ) {
-    try {
-      if (status !== 'successful') {
-        throw new HttpException('Payment not successful', 400);
-      }
-      const subscription = await this.subscriptionService.findAndUpdateTransactionId(txRef, transactionId);
-      
-      const result = await this.subscriptionService.verifyPayment(txRef);
+  async handlePaymentSuccess(@Query() query: any, @Res() res: Response) {
+    const { transaction_id, tx_ref } = query;
+    const isVerified =
+      await this.subscriptionService.verifyPayment(transaction_id);
 
-      if (!result.success) {
-        return res.status(400).json({ message: 'Payment verification failed' });
-      }
-
-      // return res.redirect(`/subscription/confirmation?ref=${txRef}`);
-      return result;
-    } catch (error) {
-      return res
-        .status(500)
-        .json({ message: 'Verification failed', error: error.message });
+    if (!isVerified) {
+      return res.redirect('/subscription/failed');
     }
+
+    await this.subscriptionModel.findOneAndUpdate(
+      { tx_ref: tx_ref},
+      {
+        status: SubscriptionStatus.ACTIVE,
+        paymentStatus: PaymentStatus.COMPLETED,
+      },
+    );
+
+    return res.redirect('/subscription/success');
   }
 
   @Post('verify-payment')

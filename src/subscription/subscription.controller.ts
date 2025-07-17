@@ -63,15 +63,15 @@ export class SubscriptionController {
 
   @Get('success')
   async handlePaymentSuccess(@Query() query: any, @Res() res: Response) {
-    const { transaction_id, tx_ref } = query;
+    const { transaction_id, tx_ref, childTempId } = query;
     const isVerified = await this.paymentService.verifyPayment(transaction_id);
 
     if (!isVerified) {
       return res.redirect('/subscription/failed');
     }
 
-    await this.subscriptionModel.findOneAndUpdate(
-      { transactionRef: tx_ref },
+      const subscription = await this.subscriptionModel.findOneAndUpdate(
+      { transactionRef: tx_ref},
       {
         status: SubscriptionStatus.ACTIVE,
         paymentStatus: PaymentStatus.COMPLETED,
@@ -86,6 +86,7 @@ export class SubscriptionController {
       transactionId: transaction_id,
       transaction_ref: tx_ref,
       subscriptionStatus: 'ACTIVE',
+      childTempId: subscription.childTempId
     });
   }
 

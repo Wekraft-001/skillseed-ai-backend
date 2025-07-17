@@ -2,12 +2,12 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import mongoose from 'mongoose';
 import { User } from './users/user.schema';
-import { SubscriptionStatus } from 'src/common/interfaces';
+import { PaymentStatus, SubscriptionStatus } from 'src/common/interfaces';
 
 @Schema({ timestamps: true })
 export class Subscription {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  user: User;
+  user: Types.ObjectId;
 
   @Prop({ required: true })
   amount: number;
@@ -24,7 +24,7 @@ export class Subscription {
   @Prop({ default: null })
   flutterwaveTransactionId: string;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null })
   child: Types.ObjectId;
 
   @Prop()
@@ -32,6 +32,13 @@ export class Subscription {
 
   @Prop({ enum: SubscriptionStatus, default: SubscriptionStatus.PENDING })
   status: SubscriptionStatus;
+
+  @Prop({
+    type: String,
+    enum: Object.values(PaymentStatus),
+    default: PaymentStatus.PENDING,
+  })
+  paymentStatus: PaymentStatus;
 
   @Prop({ required: true })
   startDate: Date;

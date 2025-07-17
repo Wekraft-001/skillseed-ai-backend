@@ -5,7 +5,7 @@ import {
   HttpException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { ClientSession, Model } from 'mongoose';
+import { ClientSession, Model, Types } from 'mongoose';
 import {
   CreateSubscriptionDto,
   PaymentStatus,
@@ -40,6 +40,18 @@ export class SubscriptionService {
       const user = await this.userModel.findById(userId);
       if (!user) {
         throw new BadRequestException('User not found');
+      }
+
+      const pendingSubscription = await this.subscriptionModel.findOne({
+        user: userId,
+        status: SubscriptionStatus.PENDING,
+        paymentStatus: PaymentStatus.PENDING,
+      });
+
+      if (pendingSubscription) {
+        throw new BadRequestException(
+          'You have a pending subscription payment. Please complete the existing payment or wait for it to expire before creating a new subscription.',
+        );
       }
 
       const childTempId = `student-${uuidv4()}`;
@@ -97,6 +109,7 @@ export class SubscriptionService {
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         childrenCount: 0,
+        children: [],
         childTempId,
         maxChildren: 30,
       });
@@ -233,22 +246,63 @@ export class SubscriptionService {
     return subscription;
   }
 
-  async verifyPayment(transactionRef: string) {
+  async verifyPayment(transactionRef: string, transactionId?: string) {
     try {
+      this.logger.log(
+        `🔍 Verifying payment for txRef: ${transactionRef}, transactionId: ${transactionId}`,
+      );
+
       const subscription = await this.subscriptionModel.findOne({
         transactionRef,
       });
       if (!subscription) {
+        this.logger.error(
+          `❌ Subscription not found for txRef: ${transactionRef}`,
+        );
+
+        const allSubscriptions = await this.subscriptionModel
+          .find({
+            transactionRef: { $regex: transactionRef.split('-')[0] },
+          })
+          .select('transactionRef status user createdAt');
+
+        this.logger.log(
+          `📋 Found ${allSubscriptions.length} subscriptions with similar txRef prefix:`,
+        );
+        allSubscriptions.forEach((sub) => {
+          this.logger.log(
+            `  - ${sub.transactionRef} | Status: ${sub.status} | User: ${sub.user} `,
+          );
+        });
+
         throw new BadRequestException('Subscription not found');
+      }
+
+      this.logger.log(
+        `✅ Found subscription: ${subscription._id} | Status: ${subscription.status} | User: ${subscription.user}`,
+      );
+      //checking if subsc. already active
+      if (subscription.status === SubscriptionStatus.ACTIVE) {
+        this.logger.log(
+          `⚠️  Subscription ${subscription._id} already active, skipping verification`,
+        );
+        return {
+          subscription,
+          message: 'Payment already verified',
+          alreadyProcessed: true,
+        };
       }
 
       if (!subscription.flutterwaveTransactionId) {
         throw new BadRequestException('No payment transaction found');
       }
 
+      this.logger.log(`🔄 Verifying payment with Flutterwave...`);
       const verificationResponse = await this.paymentService.verifyPayment(
         subscription.flutterwaveTransactionId,
       );
+
+      this.logger.log(`📊 Flutterwave response status: ${verificationResponse?.status}`);
 
       if (
         verificationResponse.status === 'success' &&
@@ -278,43 +332,73 @@ export class SubscriptionService {
     }
   }
 
-  async assignChildToSubscription(
+  async addChildToSubscription(
     parentId: string,
     childId: string,
     session?: ClientSession,
   ) {
+    // const canAddChild = await this.canAddChild(parentId);
+    // if (!canAddChild) {
+    //   throw new BadRequestException(
+    //     'Cannot add more children to this subscription',
+    //   );
+    // }
+
     const subscription = await this.subscriptionModel.findOneAndUpdate(
       {
-        parent: parentId,
-        status: 'ACTIVE',
+        user: parentId,
+        status: SubscriptionStatus.ACTIVE,
+        isActive: true,
+        child: null,
       },
-      {
-        $inc: { childrenCount: 1 },
-        $set: { child: childId },
-      },
-      { new: true, session },
+      // {
+      //   $addToSet: { children: childId },
+      //   $inc: { childrenCount: 1 },
+      //   $set: { updatedAt: new Date() },
+      // },
+      // {
+      //   new: true,
+      //   session,
+      // },
     );
 
     if (!subscription) {
-      throw new Error('Active subscription not found for this parent');
+      throw new BadRequestException(
+        'No active subscription found for this user',
+      );
     }
+
+    this.logger.log(
+      `Child ${childId} added to subscription ${subscription._id}`,
+    );
+
+    subscription.child = new Types.ObjectId(childId);
+    await subscription.save({ session});
+
+    this.logger.log(
+      `Child ${childId} added to subscription ${subscription._id} successfully`,
+    );  
+    return subscription;
+
   }
 
-  async canAddChild(userId: string, childTempId?: string): Promise<boolean> {
+  async canAddChild(userId: string): Promise<boolean> {
     const subscription = await this.subscriptionModel.findOne({
       user: userId,
       status: SubscriptionStatus.ACTIVE,
       isActive: true,
+      child: null, 
     });
-    if (!subscription) return false;
 
-    if (childTempId && subscription.childTempId !== childTempId) {
+    if (!subscription) {
       return false;
-    } 
+    }
 
-    const hasRoom = subscription.childrenCount < subscription.maxChildren;
+    if (subscription.endDate < new Date()) {
+      return false;
+    }
 
-    return hasRoom;
+    return subscription.childrenCount < subscription.maxChildren;
   }
 
   async getActiveSubscription(

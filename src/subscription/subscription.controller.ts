@@ -12,7 +12,12 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/modules/auth/guards';
 import { SubscriptionService } from './subscription.service';
-import { CardPaymentRequest, PaymentStatus, SubscriptionStatus, UserRole } from 'src/common/interfaces';
+import {
+  CardPaymentRequest,
+  PaymentStatus,
+  SubscriptionStatus,
+  UserRole,
+} from 'src/common/interfaces';
 import { CurrentUser } from 'src/common/decorators';
 import { User } from 'src/modules/schemas';
 import { CreateSubscriptionDto } from 'src/common/interfaces';
@@ -22,6 +27,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Subscription } from 'rxjs';
 import { Model } from 'mongoose';
 import { SubscriptionDocument } from 'src/modules/schemas/subscription.schema';
+import { PaymentService } from 'src/payment/payment.service';
 
 @Controller('subscriptions')
 @UseGuards(JwtAuthGuard)
@@ -30,6 +36,7 @@ export class SubscriptionController {
     private subscriptionService: SubscriptionService,
     @InjectModel(Subscription.name)
     private subscriptionModel: Model<SubscriptionDocument>,
+    private paymentService: PaymentService,
   ) {}
 
   @Post('subscribe')
@@ -57,22 +64,29 @@ export class SubscriptionController {
   @Get('success')
   async handlePaymentSuccess(@Query() query: any, @Res() res: Response) {
     const { transaction_id, tx_ref } = query;
-    const isVerified =
-      await this.subscriptionService.verifyPayment(transaction_id);
+    const isVerified = await this.paymentService.verifyPayment(transaction_id);
 
     if (!isVerified) {
       return res.redirect('/subscription/failed');
     }
 
     await this.subscriptionModel.findOneAndUpdate(
-      { tx_ref: tx_ref},
+      { transactionRef: tx_ref },
       {
         status: SubscriptionStatus.ACTIVE,
         paymentStatus: PaymentStatus.COMPLETED,
+        flutterwaveTransactionId: transaction_id,
+        isActive: true,
       },
     );
 
-    return res.redirect('/subscription/success');
+    return res.status(200).json({
+      message:
+        'Subscription payment successful. Your subscription is now active.',
+      transactionId: transaction_id,
+      transaction_ref: tx_ref,
+      subscriptionStatus: 'ACTIVE',
+    });
   }
 
   @Post('verify-payment')

@@ -93,7 +93,6 @@ export class AuthService {
     if (currentUser.role === UserRole.PARENT) {
       const canAddChild = await this.subscriptionService.canAddChild(
         currentUser._id.toString(),
-        createStudentDto.childTempId,
       );
       if (!canAddChild) {
         throw new BadRequestException(
@@ -165,75 +164,24 @@ export class AuthService {
         { session },
       );
 
-      // if (currentUser.role === UserRole.PARENT) {
-      //   const childId = newUser._id.toString();
-
-      //   await this.subscriptionService.assignChildToSubscription(
-      //     currentUser._id.toString(),
-      //     childId,
-      //     session,
-      //   );
-
-      //   const subscription = await this.subscriptionModel.findOne(
-      //     {
-      //       user: currentUser._id,
-      //       status: SubscriptionStatus.PENDING,
-      //     },
-      //     null,
-      //     { session },
-      //   );
-
-      //   if (!subscription) {
-      //     throw new BadRequestException('Subscription not found for parent');
-      //   }
-
-      //   await this.subscriptionModel.findOneAndUpdate(
-      //     { _id: subscription._id },
-      //     {
-      //       $set: {
-      //         status: SubscriptionStatus.ACTIVE,
-      //         paymentStatus: PaymentStatus.COMPLETED,
-      //         activatedAt: new Date(),
-      //         isActive: true,
-      //       },
-      //     },
-      //     { session },
-      //   );
-
-      //   await this.subscriptionService.incrementChildrenCount(
-      //     currentUser._id.toString(),
-      //   );
-      // }
-
       if (currentUser.role === UserRole.PARENT) {
         const childId = newUser._id.toString();
+        // const parentId = (currentUser as User)._id.toString();
 
-        const subscription = await this.subscriptionModel.findOneAndUpdate(
-          {
-            user: currentUser._id,
-            // childTempId: ,
-            status: SubscriptionStatus.PENDING,
-          },
-          {
-            $set: {
-              child: childId,
-              status: SubscriptionStatus.ACTIVE,
-              paymentStatus: PaymentStatus.COMPLETED,
-              activatedAt: new Date(),
-              isActive: true,
-            },
-            $unset: {
-              childTempId: 1,
-            },
-          },
-          { session, new: true },
+        const canAdd = await this.subscriptionService.canAddChild(
+          currentUser._id.toString(),
         );
-
-        if (!subscription) {
+        if (!canAdd) {
           throw new BadRequestException(
-            'Matching subscription not found for parent and childTempId',
+            'Cannot add child. Please complete payment for this child before registering them.',
           );
         }
+
+        await this.subscriptionService.addChildToSubscription(
+          currentUser._id.toString(),
+          childId,
+          session,
+        );
 
         await this.subscriptionService.incrementChildrenCount(
           currentUser._id.toString(),
@@ -249,13 +197,18 @@ export class AuthService {
         .exec();
 
       this.logger.log(
-        `Student registered: ${newUser.firstName} ${newUser.lastName} by ${(currentUser as User).firstName}`,
+        `Student registered: ${newUser.firstName} ${newUser.lastName} by ${
+          currentUser.role === UserRole.SCHOOL_ADMIN
+            ? (currentUser as School).schoolName
+            : (currentUser as User).firstName
+        }`,
       );
 
       return populatedStudent;
     } catch (error) {
-      // await session.abortTransaction();
-      this.logger.error('Error registering student', error);
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       throw error;
     } finally {
       session.endSession();

@@ -13,11 +13,13 @@ import {
   CustomerDataDto,
   FlutterwaveCharge,
   FlutterwaveCustomer,
+  FlutterwavePaymentInitiationResponse,
   FlutterwavePaymentMethod,
   PaymentRequest,
   PaymentResponse,
 } from 'src/common/interfaces';
 import * as crypto from 'crypto';
+import { v4 as uuid } from 'uuid';
 
 @Injectable()
 export class PaymentService {
@@ -31,77 +33,154 @@ export class PaymentService {
   ) {
     this.flutterwaveUrl = process.env.FLUTTERWAVE_BASE_URL;
     this.secretKey = this.configService.get<string>('FLUTTERWAVE_SECRET_KEY');
-    this.encryptionKey = process.env.FLUTTERWAVE_ENCRYPTIONKEY;
+    this.encryptionKey = process.env.FLUTTERWAVE_ENCRYPTION_KEY;
   }
 
-  private encryptCardData(data: string): {
-    encrypted_data: string;
-    nonce: string;
-  } {
-    const nonce = crypto.randomBytes(12).toString('hex');
-    const cipher = crypto.createCipher('aes-256-gcm', this.encryptionKey);
-
-    let encrypted = cipher.update(data, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-
-    return {
-      encrypted_data: encrypted,
-      nonce: nonce,
-    };
-  }
-
-  async createCustomer(
-    customerData: CustomerDataDto,
-  ): Promise<FlutterwaveCustomer> {
+  async encryptCardDetails(cardDetails: {
+    card_number: string;
+    expiry_month: string;
+    expiry_year: string;
+    cvv: string;
+  }): Promise<
+    Promise<{
+      encrypted_card_number: string;
+      encrypted_expiry_month: string;
+      encrypted_expiry_year: string;
+      encrypted_cvv: string;
+      nonce: string;
+    }>
+  > {
     try {
-      const url = `${this.flutterwaveUrl}/customers`;
+      if (!this.encryptionKey) {
+        this.logger.error('Encryption key is not set');
+      }
 
-      const response: AxiosResponse = await axios.post(url, customerData, {
+      // const key = Buffer.from(this.encryptionKey, 'base64');
+      const key = crypto.randomBytes(32);
+      const base64Key = key.toString('base64');
+
+      console.log('Base64 key *********************', base64Key);
+
+      if (key.length !== 32) {
+        throw new Error(
+          `Invalid key length: ${key.length}. AES-256 requires 32 bytes`,
+        );
+      }
+
+      const nonce = crypto.randomBytes(12).toString('hex');
+      const iv = Buffer.from(nonce, 'hex');
+
+      const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+      let encryptedCardNumber = cipher.update(
+        cardDetails.card_number,
+        'utf8',
+        'hex',
+      );
+      encryptedCardNumber += cipher.final('hex');
+      const authTag = cipher.getAuthTag();
+
+      const expiryMonthCipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+      let encryptedExpiryMonth = expiryMonthCipher.update(
+        cardDetails.expiry_month,
+        'utf8',
+        'hex',
+      );
+      encryptedExpiryMonth += expiryMonthCipher.final('hex');
+
+      const expiryYearCipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+      let encryptedExpiryYear = expiryYearCipher.update(
+        cardDetails.expiry_year,
+        'utf8',
+        'hex',
+      );
+      encryptedExpiryYear += expiryYearCipher.final('hex');
+
+      const cvvCipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+      let encryptedCvv = cvvCipher.update(cardDetails.cvv, 'utf8', 'hex');
+      encryptedCvv += cvvCipher.final('hex');
+
+      return {
+        encrypted_card_number: encryptedCardNumber,
+        encrypted_expiry_month: encryptedExpiryMonth,
+        encrypted_expiry_year: encryptedExpiryYear,
+        encrypted_cvv: encryptedCvv,
+        nonce,
+      };
+    } catch (error) {
+      this.logger.error('Error encrypting card details', error);
+      throw new BadRequestException('Failed to encrypt card details');
+    }
+  }
+
+  async createStandardPayment(paymentData: {
+    tx_ref: string;
+    amount: number;
+    currency: string;
+    redirect_url: string;
+    customer: {
+      email: string;
+      name: string;
+      phoneNumber: string;
+    };
+    payment_options?: string;
+    meta?: any;
+  }): Promise<any> {
+    try {
+      const url = `${this.flutterwaveUrl}/payments`;
+
+      this.logger.log(`Creating standard payment at: ${url}`);
+      this.logger.log(`Payload: ${JSON.stringify(paymentData, null, 2)}`);
+
+      const response: AxiosResponse = await axios.post(url, paymentData, {
         headers: {
           Authorization: `Bearer ${this.secretKey}`,
           'Content-Type': 'application/json',
-          'X-Trace-Id': crypto.randomUUID(),
-          'X-Idempotency-Key': crypto.randomUUID(),
         },
       });
 
       if (response.data.status !== 'success') {
-        throw new BadRequestException('Failed to create customer');
+        this.logger.error('Failed to create payment', response.data);
+        throw new BadRequestException('Failed to create payment');
       }
 
-      this.logger.log(`Customer created: ${response.data.data.id}`);
-      return response.data.data;
+      this.logger.log(`Payment created successfully: ${response.data.data.id}`);
+      return response.data;
     } catch (error) {
-      this.logger.error('Error creating customer', error);
-      throw new BadRequestException('Failed to create customer');
+      this.logger.error(
+        'Flutterwave API Error:',
+        error.response?.data || error.message,
+      );
+      throw new BadRequestException('Failed to create payment');
     }
   }
 
-  async createCardPaymentMethod(
-    card: CardDetails,
-    customerId: string,
-  ): Promise<FlutterwavePaymentMethod> {
+  async createFlutterwaveCustomer(
+    customerData: any,
+  ): Promise<FlutterwavePaymentInitiationResponse> {
     try {
-      const url = `${this.flutterwaveUrl}/payment-methods`;
-
-      const encryptedCardNumber = this.encryptCardData(card.card_number);
-      const encryptedExpiryMonth = this.encryptCardData(card.expiry_month);
-      const encryptedExpiryYear = this.encryptCardData(card.expiry_year);
-      const encryptedCvv = this.encryptCardData(card.cvv);
-
-      const payload = {
-        type: 'card',
-        customer_id: customerId,
-        card: {
-          encrypted_card_number: encryptedCardNumber.encrypted_data,
-          encrypted_expiry_month: encryptedExpiryMonth.encrypted_data,
-          encrypted_expiry_year: encryptedExpiryYear.encrypted_data,
-          encrypted_cvv: encryptedCvv.encrypted_data,
-          nonce: encryptedCardNumber.nonce,
+      const url = `${this.flutterwaveUrl}/payments`;
+      const paymentData = {
+        tx_ref: customerData.tx_ref,
+        amount: customerData.amount || 50,
+        currency: customerData.currency || 'USD',
+        payment_options: 'card',
+        customer: {
+          email: customerData.email,
+          name: `${customerData.name.first} ${customerData.name.last}`,
+          phonenumber: `+${customerData.phone.country_code}${customerData.phone.number}`,
         },
+        redirect_url:
+          customerData.redirect_url ||
+          'https://skillseedparent/subscription/success',
       };
 
-      const response: AxiosResponse = await axios.post(url, payload, {
+      this.logger.log(`Creating payment at: ${url}`);
+      this.logger.log(`Payload >>>>>>>>>>>>>>>>>>: ${JSON.stringify(paymentData, null, 2)}`);
+      this.logger.log(
+        `Headers: Authorization: Bearer ${this.secretKey?.substring(0, 20)}...`,
+      );
+
+      const response: AxiosResponse = await axios.post(url, paymentData, {
         headers: {
           Authorization: `Bearer ${this.secretKey}`,
           'Content-Type': 'application/json',
@@ -111,40 +190,47 @@ export class PaymentService {
       });
 
       if (response.data.status !== 'success') {
-        throw new BadRequestException('Failed to create payment method');
+        this.logger.error('Failed error response');
+        throw new BadRequestException('Failed to initiate payment');
       }
 
-      this.logger.log(`Payment method created: ${response.data.data.id}`);
-      return response.data.data;
+      this.logger.log(
+        `Payment initiated$$$$$$$$$$ : ${JSON.stringify(response.data.data)}`,
+      );
+
+
+      const customer = response.data;
+      this.logger.log(`Customer created: ${JSON.stringify(customer)}`);
+
+      return customer;
+
     } catch (error) {
-      this.logger.error('Error creating payment method', error);
-      throw new BadRequestException('Failed to create payment method');
+      this.logger.error(
+        'Flutterwave API Error:',
+        JSON.stringify({
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+          headers: error.response?.headers,
+        }),
+      );
+      throw new BadRequestException('Failed to initiate payment');
     }
   }
 
-  async createCharge(
-    amount: number,
-    currency: string,
-    customerId: string,
-    paymentMethodId: string,
-    reference: string,
-    redirectUrl: string,
-    meta?: any,
-  ): Promise<FlutterwaveCharge> {
+  async createFlutterwaveCharge(chargeData: {
+    reference: string;
+    currency: string;
+    customer_id: string;
+    payment_method_id: string;
+    redirect_url: string;
+    amount: number;
+    meta?: any;
+  }): Promise<any> {
     try {
       const url = `${this.flutterwaveUrl}/charges`;
 
-      const payload = {
-        reference,
-        currency,
-        customer_id: customerId,
-        payment_method_id: paymentMethodId,
-        redirect_url: redirectUrl,
-        amount,
-        meta: meta || {},
-      };
-
-      const response: AxiosResponse = await axios.post(url, payload, {
+      const response: AxiosResponse = await axios.post(url, chargeData, {
         headers: {
           Authorization: `Bearer ${this.secretKey}`,
           'Content-Type': 'application/json',
@@ -165,37 +251,31 @@ export class PaymentService {
     }
   }
 
-  async processCardPayment(paymentData: CardPaymentRequest): Promise<{
-    charge: FlutterwaveCharge;
-    customer: FlutterwaveCustomer;
-    paymentMethod: FlutterwavePaymentMethod;
-  }> {
+  async createFlutterwavePaymentMethod(customerData: any) {
     try {
-      const customer = await this.createCustomer(paymentData.customer);
-
-      const paymentMethod = await this.createCardPaymentMethod(
-        paymentData.card,
-        customer.id,
+      this.logger.log(
+        'Customer data being sent$$$$$$$$$$$$$$$$$$$$$: ',
+        JSON.stringify(customerData, null, 2),
       );
-
-      const charge = await this.createCharge(
-        paymentData.amount,
-        paymentData.currency,
-        customer.id,
-        paymentMethod.id,
-        paymentData.reference,
-        paymentData.redirect_url,
-        paymentData.meta,
+      const response = await axios.post(
+        `${this.flutterwaveUrl}/customers`,
+        customerData,
+        {
+          headers: {
+            Authorization: `Bearer ${this.secretKey}`,
+            'Content-Type': 'application/json',
+            'X-Trace-Id': uuid(),
+            'X-Idempotency-Key': uuid(),
+          },
+        },
       );
-
-      return {
-        charge,
-        customer,
-        paymentMethod,
-      };
+      this.logger.log(`Payment method created: ${response.data.data.id}`);
+      return response.data.data;
     } catch (error) {
-      this.logger.error('Error processing card payment', error);
-      throw error;
+      this.logger.error('Error creating Flutterwave payment method', error);
+      throw new Error(
+        `Failed to create payment method: ${error.response?.data?.message || error.message}`,
+      );
     }
   }
 
@@ -203,6 +283,8 @@ export class PaymentService {
     try {
       const url = `${this.flutterwaveUrl}/transactions/${transactionId}/verify`;
 
+      this.logger.log(`Verifying payment at: ${url}`);
+
       const response: AxiosResponse = await axios.get(url, {
         headers: {
           Authorization: `Bearer ${this.secretKey}`,
@@ -211,19 +293,26 @@ export class PaymentService {
       });
 
       if (response.data.status !== 'success') {
+        this.logger.error('Payment verification failed', response.data);
         throw new BadRequestException('Payment verification failed');
       }
 
+      this.logger.log(`Payment verified successfully: ${transactionId}`);
       return response.data;
     } catch (error) {
-      this.logger.error('Error verifying payment', error);
+      this.logger.error(
+        'Error verifying payment',
+        error.response?.data || error.message,
+      );
       throw new BadRequestException('Payment verification failed');
     }
   }
 
-  async getPaymentDetails(chargeId: string): Promise<any> {
+  async getTransactionDetails(transactionId: string): Promise<any> {
     try {
-      const url = `${this.flutterwaveUrl}/charges/${chargeId}`;
+      const url = `${this.flutterwaveUrl}/transactions/${transactionId}`;
+
+      this.logger.log(`Getting transaction details at: ${url}`);
 
       const response: AxiosResponse = await axios.get(url, {
         headers: {
@@ -233,13 +322,21 @@ export class PaymentService {
       });
 
       if (response.data.status !== 'success') {
-        throw new BadRequestException('Failed to get payment details');
+        this.logger.error('Failed to get transaction details', response.data);
+        throw new BadRequestException('Failed to get transaction details');
       }
 
+      this.logger.log(
+        `Transaction details retrieved successfully: ${transactionId}`,
+      );
       return response.data;
     } catch (error) {
-      this.logger.error('Error getting payment details', error);
-      throw new BadRequestException('Failed to get payment details');
+      this.logger.error(
+        'Error getting transaction details',
+        error.response?.data || error.message,
+      );
+      throw new BadRequestException('Failed to get transaction details');
     }
   }
+
 }

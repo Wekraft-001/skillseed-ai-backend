@@ -6,6 +6,9 @@ import {
   Request,
   UseGuards,
   BadRequestException,
+  Query,
+  Res,
+  HttpException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/modules/auth/guards';
 import { SubscriptionService } from './subscription.service';
@@ -14,13 +17,14 @@ import { CurrentUser } from 'src/common/decorators';
 import { User } from 'src/modules/schemas';
 import { CreateSubscriptionDto } from 'src/common/interfaces';
 import { VerifyPaymentDto } from 'src/common/interfaces/verify-payment.dto';
+import { Response } from 'express';
 
-@Controller('subscription')
+@Controller('subscriptions')
 @UseGuards(JwtAuthGuard)
 export class SubscriptionController {
   constructor(private subscriptionService: SubscriptionService) {}
 
-  @Post('create')
+  @Post('subscribe')
   async createSubscription(
     @Body() createSubscriptionDto: CreateSubscriptionDto,
     @CurrentUser() user: User,
@@ -29,21 +33,45 @@ export class SubscriptionController {
       throw new BadRequestException('Only parents can create subscriptions');
     }
 
-     const cardPaymentData: CardPaymentRequest = {
-      amount: createSubscriptionDto.amount,
-      currency: createSubscriptionDto.currency,
-      customer: createSubscriptionDto.customer,
-      card: createSubscriptionDto.card,
-      reference: '', // This will be set in the service
-      redirect_url: createSubscriptionDto.redirect_url,
-      meta: createSubscriptionDto.meta || {},
-    };
+    const result =
+      await this.subscriptionService.createSubscriptionWithCardPayment(
+        user._id.toString(),
+        createSubscriptionDto,
+      );
 
-    return this.subscriptionService.createSubscriptionWithCardPay(
-      user._id.toString(),
-      createSubscriptionDto.planId,
-      cardPaymentData,
-    );
+    return {
+      message: 'Subscription created. Please complete payment.',
+      authorizationUrl: result.authorizationUrl,
+      reference: result.reference,
+    };
+  }
+
+  @Get('success')
+  async handlePaymentSuccess(
+    @Query('transaction_id') transactionId: string,
+    @Query('tx_ref') txRef: string,
+    @Query('status') status: string,
+    @Res() res: Response,
+  ) {
+    try {
+      if (status !== 'successful') {
+        throw new HttpException('Payment not successful', 400);
+      }
+      const subscription = await this.subscriptionService.findAndUpdateTransactionId(txRef, transactionId);
+      
+      const result = await this.subscriptionService.verifyPayment(txRef);
+
+      if (!result.success) {
+        return res.status(400).json({ message: 'Payment verification failed' });
+      }
+
+      // return res.redirect(`/subscription/confirmation?ref=${txRef}`);
+      return result;
+    } catch (error) {
+      return res
+        .status(500)
+        .json({ message: 'Verification failed', error: error.message });
+    }
   }
 
   @Post('verify-payment')

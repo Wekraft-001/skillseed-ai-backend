@@ -18,12 +18,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: {
     sub: number;
     firstName: string;
+    lastName: string;
     age: number;
     email: string;
     role?: UserRole;
     school?: School;
     schoolName?: string;
     studentsLimit?: number;
+    phoneNumber?: number;
     createdBy?: User;
   }) {
     if (!payload.sub) {
@@ -45,11 +47,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         createdBy: payload.createdBy,
         school: payload.school,
       };
+    } else if(payload.role === UserRole.PARENT) {
+      return {
+        _id: payload.sub,
+        email: payload.email,
+        role: payload.role,
+        firstName: payload.firstName,
+        lastName: payload.lastName,
+        poneNumber: payload.phoneNumber,
+        createdBy: payload.createdBy,
+        school: payload.school,
+      }
     }
 
     const user = {
       _id: payload.sub,
       firstName: payload.firstName,
+      lastName: payload.lastName,
+      phoneNumber: payload.phoneNumber,
       age: payload.age,
       email: payload.email,
       school: payload.school,

@@ -23,20 +23,21 @@ export class CardDetails {
   @IsNotEmpty()
   @IsString()
   cvv: string;
+  
 }
 
 export class CustomerNameDto {
   @IsNotEmpty()
   @IsString()
-  first: string;
+  firstName: string;
 
   @IsOptional()
   @IsString()
-  middle?: string;
+  middleName?: string;
 
   @IsNotEmpty()
   @IsString()
-  last: string;
+  lastName: string;
 }
 
 export class CustomerPhoneDto {
@@ -86,7 +87,7 @@ export class CustomerDataDto {
 
   @ValidateNested()
   @Type(() => CustomerPhoneDto)
-  phone: CustomerPhoneDto;
+  phoneNumber: CustomerPhoneDto;
 
   @ValidateNested()
   @Type(() => CustomerAddressDto)
@@ -101,7 +102,7 @@ export interface CardPaymentRequest {
   card: CardDetails;
   reference: string;
   redirect_url: string;
-  meta?: any;
+  // meta?: any;
 }
 
 export interface FlutterwaveCustomer {
@@ -124,6 +125,15 @@ export interface FlutterwavePaymentMethod {
     expiry_year: string;
   };
 }
+export interface FlutterwavePaymentInitiationResponse {
+  status: string;
+  message: string;
+  data: {
+    link: string;
+    tx_ref: string;
+  };
+}
+
 
 export interface FlutterwaveCharge {
   id: string;

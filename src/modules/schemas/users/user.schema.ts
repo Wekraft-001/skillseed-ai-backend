@@ -49,6 +49,9 @@ export class User extends Document {
   @Prop({ type: Types.ObjectId, ref: 'School', index: true, default: null })
   school: Types.ObjectId;
 
+  @Prop()
+  phoneNumber: number;
+
   @Prop({type: Types.ObjectId, ref: 'User', default: null, index: true})
   createdBy?: Types.ObjectId;
 

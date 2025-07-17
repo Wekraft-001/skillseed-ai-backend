@@ -10,23 +10,18 @@ export class PaymentController {
     private readonly subscriptionService: SubscriptionService,
   ) {}
 
-  @Post('card/process')
-  async processCardPayment(@Body() paymentData: CardPaymentRequest) {
-    return this.paymentService.processCardPayment(paymentData);
-  }
-
   @Post('subscription/create')
   async createSubscriptionWithCard(
     @Body()
     data: {
       userId: string;
-      planId: string;
+    //   planId: string;
       cardPayment: CardPaymentRequest;
     },
   ) {
-    return this.subscriptionService.createSubscriptionWithCardPay(
+    return this.subscriptionService.createSubscriptionWithCardPayment(
       data.userId,
-      data.planId,
+    //   data.planId,
       data.cardPayment,
     );
   }
@@ -36,8 +31,5 @@ export class PaymentController {
     return this.subscriptionService.verifyPayment(transactionRef);
   }
 
-  @Get('details/:chargeId')
-  async getPaymentDetails(@Param('chargeId') chargeId: string) {
-    return this.paymentService.getPaymentDetails(chargeId);
-  }
+
 }

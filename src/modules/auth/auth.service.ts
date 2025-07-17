@@ -59,7 +59,7 @@ export class AuthService {
       });
 
       return newUser.toObject();
-      
+
     } catch (error) {
       this.logger.error('Error registering user', error);
       throw error;
@@ -244,6 +244,8 @@ export class AuthService {
       role: user.role,
       email: user.email,
       firstName: user.firstName,
+      lastName: user.lastName,
+      phoneNumber: user.phoneNumber,
       school: user.school,
       createdBy: user.createdBy,
     };

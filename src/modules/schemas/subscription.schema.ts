@@ -21,6 +21,9 @@ export class Subscription {
   @Prop({ default: null })
   flutterwaveTransactionId: string;
 
+  @Prop()
+  flutterwaveCardToken?: string;
+
   @Prop({ enum: SubscriptionStatus, default: SubscriptionStatus.PENDING })
   status: SubscriptionStatus;
 

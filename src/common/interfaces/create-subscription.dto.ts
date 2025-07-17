@@ -3,9 +3,6 @@ import { IsString, IsNotEmpty, IsNumber, ValidateNested, IsOptional } from "clas
 import { CardDetails, CustomerDataDto } from "./card.interface";
 
 export class CreateSubscriptionDto {
-  @IsNotEmpty()
-  @IsString()
-  planId: string;
 
   @IsNotEmpty()
   @IsNumber()
@@ -27,6 +24,4 @@ export class CreateSubscriptionDto {
   @IsString()
   redirect_url: string;
 
-  @IsOptional()
-  meta?: any;
 }

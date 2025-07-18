@@ -1,15 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model, Types } from 'mongoose';
-import { School } from '../../schemas/school.schema';
-import { User, UserDocument } from '../../schemas';
+import { School } from '../../../schemas/school.schema';
+import { User, UserDocument } from '../../../schemas';
 import { LoggerService } from 'src/common/logger/logger.service';
-import { PasswordService } from '.';
+import { PasswordService } from '../../super_admin/services';
 import { CreateSchoolDto, UserRole } from 'src/common/interfaces';
 import { uploadToAzureStorage } from 'src/common/utils/azure-upload.util';
-import { EmailService } from '../../../common/utils/mailing/email.service';
+import { EmailService } from '../../../../common/utils/mailing/email.service';
 import { ConfigService } from '@nestjs/config';
-import { RedisService } from 'src/Redis/redis.service';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class SchoolOnboardingService {

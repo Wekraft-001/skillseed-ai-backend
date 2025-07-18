@@ -1,14 +1,5 @@
-import {
-  Controller,
-  Body,
-  Post,
-  UsePipes,
-  HttpStatus,
-  UseGuards,
-  UseInterceptors,
-  UploadedFile,
-} from '@nestjs/common';
-import { CreateAdminOrParentDto, CreateStudentDto, LoginDto } from './dtos';
+import { Controller, Body, Post, UsePipes, HttpStatus } from '@nestjs/common';
+import { CreateAdminOrParentDto, LoginDto } from './dtos';
 import { AuthService } from './auth.service';
 import { SanitizePipe } from '../sanitizer/sanitize.pipe';
 import {
@@ -17,13 +8,7 @@ import {
   ApiTags,
   ApiBadRequestResponse,
 } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
-import { RolesGuard } from './guards/roles.guard';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { User } from '../schemas';
-import { UserRole } from 'src/common/interfaces';
-import { CurrentUser } from 'src/common/decorators';
-import { FileInterceptor } from '@nestjs/platform-express';
+
 
 @Controller('auth')
 export class AuthController {
@@ -93,19 +78,8 @@ export class AuthController {
   @ApiBadRequestResponse({
     description: 'Bad Request - Invalid input data',
   })
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.PARENT, UserRole.SCHOOL_ADMIN)
-  // @UsePipes(new SanitizePipe())
-  @Post('addStudent')
-  @UseInterceptors(FileInterceptor('image'))
-  async registerStudent(
-    @UploadedFile() image: Express.Multer.File,
-    @Body() createStudentDto: CreateStudentDto,
-    @CurrentUser() user: User,
-  ) {
-    return this.authService.registerStudent(createStudentDto, user, image);
-  }
 
+  
   @Post('signin')
   @ApiTags('Authentication')
   @UsePipes(new SanitizePipe())

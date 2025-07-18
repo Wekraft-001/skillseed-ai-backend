@@ -1,7 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import {
-  Transaction,
-} from 'src/modules/schemas/transaction.schema';
+import { Transaction } from 'src/modules/schemas/transaction.schema';
 import { ClientSession, Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { LoggerService } from 'src/common/logger/logger.service';
@@ -12,7 +10,7 @@ import {
 } from 'src/common/interfaces';
 import { School, User } from 'src/modules/schemas';
 import { EmailService } from 'src/common/utils/mailing/email.service';
-import { RedisService } from 'src/Redis/redis.service';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class TransactionService {
@@ -28,6 +26,7 @@ export class TransactionService {
     createTransactionDto: CreateTransactionDto,
   ): Promise<{ transaction: Transaction; school: School }> {
     const session: ClientSession = await this.schoolModel.db.startSession();
+    let committed = false;
 
     try {
       session.startTransaction();
@@ -44,8 +43,6 @@ export class TransactionService {
           'School not found or already completed payment',
         );
       }
-
-      //creating actual transaction
 
       const newTransaction = new this.transactionModel({
         schoolName: createTransactionDto.schoolName,
@@ -66,6 +63,7 @@ export class TransactionService {
       await school.save({ session });
 
       await session.commitTransaction();
+      committed = true;
 
       const tempPassword = await this.getTemporaryPassword(
         school._id.toString(),

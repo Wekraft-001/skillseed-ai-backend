@@ -104,6 +104,13 @@ export class AuthService {
     const session: ClientSession = await this.userModel.db.startSession();
 
     try {
+      const hashedPassword = await bcrypt.hash(createStudentDto.password, 10);
+
+      let imageUrl = '';
+      if (image) {
+        imageUrl = await uploadToAzureStorage(image);
+      }
+
       session.startTransaction();
 
       const schoolId =
@@ -130,13 +137,6 @@ export class AuthService {
             );
           }
         }
-      }
-
-      const hashedPassword = await bcrypt.hash(createStudentDto.password, 10);
-
-      let imageUrl = '';
-      if (image) {
-        imageUrl = await uploadToAzureStorage(image);
       }
 
       const newUser = new this.userModel({
@@ -177,9 +177,14 @@ export class AuthService {
           );
         }
 
+        if(!createStudentDto.childTempId) {
+          throw new BadRequestException('Missing childTempId. Cannot link to subscription')
+        }
+
         await this.subscriptionService.addChildToSubscription(
           currentUser._id.toString(),
           childId,
+          createStudentDto.childTempId,
           session,
         );
 

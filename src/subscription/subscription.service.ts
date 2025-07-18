@@ -20,6 +20,7 @@ import { PaymentService } from '../payment/payment.service';
 import { LoggerService } from 'src/common/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { v4 as uuidv4 } from 'uuid';
+import { child } from 'winston';
 
 @Injectable()
 export class SubscriptionService {
@@ -112,7 +113,7 @@ export class SubscriptionService {
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         childrenCount: 0,
-        children: [],
+        child: null,
         childTempId,
         maxChildren: 30,
       });
@@ -156,8 +157,8 @@ export class SubscriptionService {
         email: user.email,
         name: `${user.firstName || ''} ${user.lastName || ''}`,
         phonenumber: `+${user.phoneNumber.toString()}`,
-        frequency: 'once', // Optional: for recurring, set to 'daily', 'weekly', etc.
-        is_permanent: false, // Set to true for static virtual account
+        frequency: 'once',
+        is_permanent: false, 
       };
 
       this.logger.log(`Creating virtual account for user ${userId}`);
@@ -180,11 +181,7 @@ export class SubscriptionService {
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         childrenCount: 0,
         maxChildren: 30,
-        // virtualAccountDetails: {
-        //   accountNumber: virtualAccountResponse.data.account_number,
-        //   bankName: virtualAccountResponse.data.bank_name,
-        //   accountName: virtualAccountResponse.data.account_name,
-        // },
+        child: null
       });
 
       await subscription.save();
@@ -338,31 +335,25 @@ export class SubscriptionService {
   async addChildToSubscription(
     parentId: string,
     childId: string,
+    childTempId: string,
     session?: ClientSession,
   ) {
-    // const canAddChild = await this.canAddChild(parentId);
-    // if (!canAddChild) {
-    //   throw new BadRequestException(
-    //     'Cannot add more children to this subscription',
-    //   );
-    // }
 
     const subscription = await this.subscriptionModel.findOneAndUpdate(
       {
         user: parentId,
+        childTempId,
         status: SubscriptionStatus.ACTIVE,
         isActive: true,
         child: null,
       },
-      // {
-      //   $addToSet: { children: childId },
-      //   $inc: { childrenCount: 1 },
-      //   $set: { updatedAt: new Date() },
-      // },
-      // {
-      //   new: true,
-      //   session,
-      // },
+      {
+        $set: { child: new Types.ObjectId(childId)},
+      },
+      {
+        new: true,
+        session,
+      },
     );
 
     if (!subscription) {
@@ -372,11 +363,11 @@ export class SubscriptionService {
     }
 
     this.logger.log(
-      `Child ${childId} added to subscription ${subscription._id}`,
+      `Child ${childId} linked to subscription >>>> ${subscription._id}`,
     );
 
-    subscription.child = new Types.ObjectId(childId);
-    await subscription.save({ session});
+    // subscription.child = new Types.ObjectId(childId);
+    // await subscription.save({ session});
 
     this.logger.log(
       `Child ${childId} added to subscription ${subscription._id} successfully`,

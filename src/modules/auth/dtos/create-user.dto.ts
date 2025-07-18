@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsString, IsEmail, MinLength, IsNumber } from 'class-validator';
+import { IsString, IsEmail, MinLength, IsNumber, IsOptional } from 'class-validator';
 import { UserRole } from 'src/common/interfaces';
 
 export class CreateAdminOrParentDto {
@@ -44,6 +44,7 @@ export class CreateStudentDto {
   @MinLength(6)
   password: string;
 
+  @IsOptional()
   @IsString()
   childTempId?: string;
 }

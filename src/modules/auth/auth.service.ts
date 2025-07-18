@@ -39,7 +39,7 @@ export class AuthService {
     this.logger.setContext(AuthService.name);
   }
 
-  async registerAdminOrParent(createDto: CreateAdminOrParentDto) {
+  async registerAdminOrParent(createDto: CreateAdminOrParentDto, isOAuth = false) {
     if (![UserRole.SUPER_ADMIN, UserRole.PARENT].includes(createDto.role)) {
       throw new BadRequestException(
         'Only SUPER_ADMIN or PARENT can self-register',
@@ -58,10 +58,11 @@ export class AuthService {
       }
 
       await session.withTransaction(async () => {
-        const hashedPassword = await bcrypt.hash(createDto.password, 10);
+        const hashedPassword = isOAuth ? undefined : await bcrypt.hash(createDto.password, 10);
         newUser = new this.userModel({
           ...createDto,
           password: hashedPassword,
+          isOAuth
         });
         await newUser.save({ session });
       });

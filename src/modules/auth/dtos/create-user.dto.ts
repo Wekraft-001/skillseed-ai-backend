@@ -12,6 +12,7 @@ export class CreateAdminOrParentDto {
   @IsEmail()
   email: string;
 
+  @IsOptional()
   @IsNumber()
   phoneNumber: number;
 
@@ -21,6 +22,29 @@ export class CreateAdminOrParentDto {
   @IsString()
   @MinLength(6)
   password: string;
+}
+
+export class CreateOAuthUserDto {
+  @IsString()
+  firstName: string;
+
+  @IsString()
+  lastName: string;
+
+  @IsEmail()
+  email: string;
+
+  @IsOptional()
+  @IsNumber()
+  phoneNumber?: number;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(6)
+  password?: string;
+
+  @IsString()
+  role: UserRole;
 }
 
 export class CreateStudentDto {

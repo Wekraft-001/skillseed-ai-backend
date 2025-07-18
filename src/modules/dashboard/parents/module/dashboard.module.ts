@@ -20,5 +20,6 @@ import { SubscriptionModule } from 'src/subscription/subscription.module';
   ],
   controllers: [ParentDashboardController],
   providers: [ParentDashboardService],
+  exports: [ParentDashboardService]
 })
 export class ParentDashboardModule {}

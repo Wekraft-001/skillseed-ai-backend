@@ -49,15 +49,6 @@ export class SubscriptionService {
         paymentStatus: PaymentStatus.PENDING,
       });
 
-      // const pendingSubscriptionPaymentLink = await this
-
-      // if (pendingSubscription) {
-      //   throw new BadRequestException(
-      //     `You have a pending subscription payment. Please complete the existing payment or wait for it to expire before creating a new subscription.  
-      //     Current pending subscription ID: ${pendingSubscription}`,
-      //   );
-      // }
-
       const childTempId = `student-${uuidv4()}`;
       const transactionRef = `subscription-${uuidv4()}`;
       this.logger.log(

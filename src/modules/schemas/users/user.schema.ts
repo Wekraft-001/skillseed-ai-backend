@@ -12,7 +12,7 @@ export type UserDocument = User &
 
 @Schema({ timestamps: true, collection: 'users', autoIndex: true })
 export class User extends Document {
-  _id: Types.ObjectId;
+  // _id: Types.ObjectId;
 
   @Prop({ required: true, index: true })
   firstName: string;
@@ -40,8 +40,11 @@ export class User extends Document {
   @Prop({sparse: true, unique: true, lowercase: true, trim: true, index: true })
   email: string;
 
-  @Prop({ required: true, minlength: 6 })
+  @Prop({ required: function() {return !this.isOAuth}, minlength: 6 })
   password: string;
+
+  @Prop({ default: false })
+  isOAuth: boolean;
 
   @Prop({ default: null })
   deletedAt: Date;

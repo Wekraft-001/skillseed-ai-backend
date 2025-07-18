@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { SchoolController } from '../controllers';
-import { PasswordService, SchoolOnboardingService } from '../services';
-import { LoggerModule } from '../../../common/logger/logger.module';
-import { School, SchoolSchema, User, UserSchema } from '../../schemas';
+import { SchoolController } from '../../super_admin/controllers';
+import { PasswordService, SchoolOnboardingService } from '../../super_admin/services';
+import { LoggerModule } from '../../../../common/logger/logger.module';
+import { School, SchoolSchema, User, UserSchema } from '../../../schemas';
 import { EmailModule } from 'src/common/utils/mailing/email.module';
 
 @Module({

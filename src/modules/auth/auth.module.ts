@@ -12,6 +12,8 @@ import { SubscriptionModule } from 'src/subscription/subscription.module';
 import { Subscription, SubscriptionSchema } from '../schemas/subscription.schema';
 import { GoogleStrategy } from './strategies/googleOauth.strategy';
 import googleOauthConfig from 'src/config/google-oauth.config';
+import { DashboardModule } from '../dashboard/super_admin/modules';
+import { ParentDashboardModule } from '../dashboard/parents/module/dashboard.module';
 
 @Module({
   imports: [
@@ -34,7 +36,8 @@ import googleOauthConfig from 'src/config/google-oauth.config';
       { name: Subscription.name, schema: SubscriptionSchema}
     ]),
     LoggerModule,
-    SubscriptionModule
+    SubscriptionModule,
+    ParentDashboardModule
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, GoogleStrategy],

@@ -6,7 +6,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { LoggerService } from 'src/common/logger/logger.service';
-import { AiService } from '../../ai/ai.service';
+import { AiService } from '../../../ai/ai.service';
 import {
   DashboardData,
   DashboardResponse,
@@ -14,11 +14,11 @@ import {
   UserRole,
 } from 'src/common/interfaces';
 
-import { EducationalContent } from '../../schemas/educational_content.schema';
-import { Badge, User } from '../../schemas';
-import { ProjectShowcase } from '../../schemas/showcase.schema';
-import { CareerQuiz } from '../../schemas/career-quiz.schema';
-import { School } from '../../schemas/school.schema';
+import { EducationalContent } from '../../../schemas/educational_content.schema';
+import { Badge, User } from '../../../schemas';
+import { ProjectShowcase } from '../../../schemas/showcase.schema';
+import { CareerQuiz } from '../../../schemas/career-quiz.schema';
+import { School } from '../../../schemas/school.schema';
 
 @Injectable()
 export class DashboardService {
@@ -277,15 +277,5 @@ export class DashboardService {
     };
   }
 
-  async getStudentsForUser(user: User) {
-    const query: any = { role: UserRole.STUDENT };
-
-    if (user.role === UserRole.SCHOOL_ADMIN && user.school) {
-      query.school = user.school;
-    } else if (user.role === UserRole.PARENT) {
-      query.createdBy = user._id;
-    }
-
-    return this.userModel.find(query).populate('createdBy').lean();
-  }
+  
 }

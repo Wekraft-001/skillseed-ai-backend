@@ -14,14 +14,18 @@ import {
 import { LoggerModule } from './common/logger/logger.module';
 import { UserModule } from './modules/users/user.module';
 import { AiModule } from './modules/ai/ai.module';
-import { SchoolModule } from './modules/dashboard/modules/school.module';
+import {
+  DashboardModule,
+  SchoolModule,
+  TransactionModule,
+  MentorModule,
+} from './modules/dashboard/super_admin/modules/index';
 import { MongooseModule } from '@nestjs/mongoose';
-import { DashboardModule } from './modules/dashboard/modules/dashboard.module';
 import { SubscriptionModule } from './subscription/subscription.module';
-import { RedisModule } from './Redis/redis.module';
-import { TransactionModule } from './modules/dashboard/modules/transaction.module';
-import { MentorModule } from './modules/dashboard/modules/mentor.module';
+import { RedisModule } from './redis/redis.module';
 import { PaymentModule } from './payment/payment.module';
+import { SchoolDashboardModule } from './modules/dashboard/school_admin/modules/dashboard.module';
+import { ParentDashboardModule } from './modules/dashboard/parents/module/dashboard.module';
 
 @Module({
   imports: [
@@ -48,12 +52,14 @@ import { PaymentModule } from './payment/payment.module';
     UserModule,
     AiModule,
     SchoolModule,
+    SchoolDashboardModule,
+    ParentDashboardModule,
     DashboardModule,
     SubscriptionModule,
     RedisModule,
     TransactionModule,
     MentorModule,
-    PaymentModule
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

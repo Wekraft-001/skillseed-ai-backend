@@ -21,7 +21,7 @@ export interface DashboardResponse extends DashboardData {
     message: string,
     timestamp: string,
     userId: number,
-    summary: DashboardSummary,
+    summary?: DashboardSummary,
     currentUser: User,
     // data?: {
     //     success: true,

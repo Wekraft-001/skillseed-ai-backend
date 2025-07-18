@@ -1,15 +1,11 @@
 import {
-  Controller,
-  Body,
-  Post,
-  UsePipes,
-  HttpStatus,
   UseGuards,
   UseInterceptors,
   UploadedFile,
   Get,
   Req,
   Res,
+   Controller, Body, Post, UsePipes, HttpStatus
 } from '@nestjs/common';
 import { CreateAdminOrParentDto, CreateStudentDto, LoginDto } from './dtos';
 import { AuthService } from './auth.service';
@@ -29,9 +25,10 @@ import { CurrentUser } from 'src/common/decorators';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { Request, Response } from 'express';
-import { IsPhoneNumber } from 'class-validator';
 import { JwtService } from '@nestjs/jwt';
 import { LoggerService } from 'src/common/logger/logger.service';
+import { ParentDashboardService } from '../dashboard/parents/services/dashboard.service';
+
 
 @Controller('auth')
 export class AuthController {
@@ -39,6 +36,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private jwtService: JwtService,
     private logger: LoggerService,
+    private readonly parentDashboardService: ParentDashboardService,
   ) {}
 
   @Post('register')
@@ -183,9 +181,10 @@ export class AuthController {
     @Body() createStudentDto: CreateStudentDto,
     @CurrentUser() user: User,
   ) {
-    return this.authService.registerStudent(createStudentDto, user, image);
+    return this.parentDashboardService.registerStudentByParent(createStudentDto, user, image);
   }
 
+  
   @Post('signin')
   @ApiTags('Authentication')
   @UsePipes(new SanitizePipe())

@@ -42,31 +42,133 @@ export class AiService {
   }
 
   async generateCareerQuiz(user: User): Promise<CareerQuiz> {
-    const prompt = `Create 5 discovery questions for a child aged ${user.age}...`;
+    const ageScales = {
+      '6-8': {
+        scale: [
+          '😞 Not at all',
+          '😐 A little',
+          '🙂 Sometimes',
+          '😀 Often',
+          '🤩 A lot',
+        ],
+        phases: [
+          'What Makes You Smile?',
+          'Your Superpowers',
+          'If You Could...',
+        ],
+        funBreaks: [
+          'Unlock a “Smile Star” badge and do a 30-sec dance break with an animation.',
+          '“Power-Up” moment – they get a virtual cape or badge: “Super Helper” or “Creative Star.”',
+          'Reveal their “Imagination Avatar” with a fun description like: “Future Inventor” or “Dreamy Designer.”',
+        ],
+      },
+      '9-12': {
+        scale: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
+        phases: ['What Do You Enjoy?', 'How Do You Work?', 'Dream Job Fun'],
+        funBreaks: [
+          'Roll a digital dice to reveal “hidden powers” like “The Curious Leader” or “Imaginative Explorer.”',
+          'Unlock a new “Toolbox Skill” (like Focus, Leadership, Curiosity), with a sound effect or animation.',
+          'Career Card Reveal — “You’d shine as a Creative Director or Young Scientist!”',
+        ],
+      },
+      '13-15': {
+        scale: [
+          'Strongly Disagree',
+          'Disagree',
+          'Neutral',
+          'Agree',
+          'Strongly Agree',
+        ],
+        phases: [
+          'How You See the World',
+          'Who You Are With Others',
+          'You in the Future',
+        ],
+        funBreaks: [
+          '“Mind Map Reveal” — a glowing web shows their top thinking strengths.',
+          'They earn a “Team Type” — e.g., “The Motivator,” “The Organizer,” or “The Listener.”',
+          'They unlock their “Impact Identity” — “World Builder,” “Creative Force,” “Future Leader.”',
+        ],
+      },
+      '16-17': {
+        scale: ['Very Untrue', 'Untrue', 'Neutral', 'True', 'Very True'],
+        phases: [
+          'Values and Strengths',
+          'Skills and Style',
+          'Vision & Career Match',
+        ],
+        funBreaks: [
+          'Values visualization — a glowing “constellation” that connects their key values.',
+          'Unlock their “Skill DNA” — with highlights like “Decision-Maker,” “Strategist,” or “Vision Mapper.”',
+          'Reveal a “Career Launchpad” with 3 potential future journeys they can explore deeper.',
+        ],
+      },
+    };
+
+    let ageRange: string;
+    if (user.age >= 6 && user.age <= 8) ageRange = '6-8';
+    else if (user.age >= 9 && user.age <= 12) ageRange = '9-12';
+    else if (user.age >= 13 && user.age <= 15) ageRange = '13-15';
+    else if (user.age >= 16 && user.age <= 17) ageRange = '16-17';
+    else throw new BadRequestException('Age must be between 6 and 17');
+
+    const { scale, phases, funBreaks } = ageScales[ageRange];
+
+    const prompt = `
+    Create a fun and interactive career discovery quiz for a child aged ${user.age} (age range ${ageRange}). The quiz should have 3 phases, each with 3-5 questions, similar to the following structure:
+    Phases: ${phases.join(', ')}
+    Answer scale: ${scale.join(', ')}
+    Fun breaks: After each phase, include a fun break idea like: ${funBreaks.join(', ')}
+    For each phase, generate 3-6 questions that align with the theme of the phase and are appropriate for the age group. Each question must have ${scale.length} multiple-choice answer options matching the scale exactly (e.g., ${scale.join(', ')}). Format the output as a JSON object with the following structure:
+
+    {
+      "phases": [
+        {
+          "name": "Phase name",
+          "questions": [
+            {
+              "text": "Question text",
+              "answers": ["${scale[0]}", "${scale[1]}", ..., "${scale[scale.length - 1]}"]
+            },
+            ...
+          ],
+          "funBreak": "Fun break description"
+        },
+        ...
+      ]
+    }
+
+    Ensure the questions are engaging, age-appropriate, and encourage self-reflection. The fun breaks should be interactive and rewarding, like earning badges or unlocking fun animations.
+
+    `;
 
     const response = await this.openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const questions = (response.choices[0].message.content || '')
-      .split('\n')
-      .filter((line) => line.trim())
-      .map((line) => line.replace(/^\d+\.\s*/, '').trim());
+    const quizContent = JSON.parse(response.choices[0].message.content || '{}');
+    if (!quizContent.phases || !Array.isArray(quizContent.phases)) {
+      throw new BadRequestException('Invalid quiz content format');
+    }
 
     const quiz = await this.quizModel.create({
       user: user._id,
-      questions,
+      // ageRange,
+      phases: quizContent.phases,
+      completed: false,
+      answers: [],
+      analysis: '',
     });
 
     return quiz;
+
   }
 
   async getAllQuizzes(currentUser: User): Promise<CareerQuiz[]> {
-
     if (currentUser.role !== UserRole.SUPER_ADMIN) {
-    throw new ForbiddenException('Access denied');
-  }
+      throw new ForbiddenException('Access denied');
+    }
 
     return await this.quizModel.find().populate('user').exec();
   }

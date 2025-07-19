@@ -38,9 +38,9 @@ export class PaymentService {
     @InjectModel(Subscription.name) private subscriptionModel: Model<SubscriptionDocument>,
 
   ) {
-    this.flutterwaveUrl = process.env.FLUTTERWAVE_BASE_URL;
-    this.secretKey = this.configService.get<string>('FLUTTERWAVE_SECRET_KEY');
-    this.encryptionKey = process.env.FLUTTERWAVE_ENCRYPTION_KEY;
+    this.flutterwaveUrl = process.env.FLW_BASE_URL;
+    this.secretKey = this.configService.get<string>('FLW_SECRET_KEY');
+    this.encryptionKey = process.env.FLW_ENCRYPTIONKEY;
   }
 
   async createFlutterwaveCustomer(

@@ -184,42 +184,44 @@ export class AiService {
       .exec();
     if (!quiz) throw new NotFoundException('Quiz not found');
 
-    if (
-      !dto.answers ||
-      !Array.isArray(dto.answers) ||
-      dto.answers.length !== quiz.phases.length ||
-      !dto.answers.every(
-        (a) =>
-          typeof a.questionIndex === 'number' && typeof a.answer === 'string',
-      )
-    ) {
-      throw new BadRequestException(
-        'Answers are missing or do not match the number of questions.',
-      );
+   if(!dto.answers || !Array.isArray(dto.answers)) {
+    throw new BadRequestException('Answers array is missing or invalid');
+   }
+
+   const answersText: string[] = [];
+
+   for (const answer of dto.answers) {
+    const phase = quiz.phases[answer.phaseIndex];
+    if(!phase) {
+      throw new BadRequestException(`Invalid phase index: ${answer.phaseIndex}`);
+    }
+    const question = phase.questions[answer.questionIndex];
+    if(!question) {
+      throw new BadRequestException(`Invalid questionIndex: ${answer.questionIndex} `);
     }
 
-    // const answers = dto.answers
-    //   .sort((a, b) => a.phaseIndex - b.phaseIndex)
-    //   .map((a) => a.answer);
+    answersText.push(`Question: ${question.text}\nAnswer: ${answer.answer}`);
 
-    const answers = dto.answers
-      .sort((a, b) =>
-        a.phaseIndex !== b.phaseIndex
-          ? a.phaseIndex - b.phaseIndex
-          : a.questionIndex - b.questionIndex,
-      )
-      .map((a) => {
-        const questionText =
-          quiz.phases[a.phaseIndex].questions[a.questionIndex].text;
-        return `Question: ${questionText}\nAnswer: ${a.answer}`;
-      })
-      .join('\n\n');
+   }
+
+    // const answers = dto.answers
+    //   .sort((a, b) =>
+    //     a.phaseIndex !== b.phaseIndex
+    //       ? a.phaseIndex - b.phaseIndex
+    //       : a.questionIndex - b.questionIndex,
+    //   )
+    //   .map((a) => {
+    //     const questionText =
+    //       quiz.phases[a.phaseIndex].questions[a.questionIndex].text;
+    //     return `Question: ${questionText}\nAnswer: ${a.answer}`;
+    //   })
+    //   .join('\n\n');
 
     const prompt = `Given the following answers from a child... 
       You are a career counselor analyzing a student's responses to career assessment questions. 
       Based on the following questions and answers, provide a comprehensive career analysis and recommendations.
 
-      ${answers}
+      ${answersText.join('\n\n')}
 
       Please provide:
       1. Analysis of the student's interests and strengths
@@ -251,6 +253,7 @@ export class AiService {
     };
   }
 
+  
   async submitAnswers(dto: SubmitAnswersDto, userId: string) {
     const quiz = await this.quizModel
       .findById(dto.quizId)

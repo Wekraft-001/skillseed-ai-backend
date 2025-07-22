@@ -9,14 +9,47 @@ export class CareerQuiz {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   user: Types.ObjectId | User;
 
-  @Prop({ type: [String], required: true, index: true })
-  questions: string[];
+  @Prop({
+    type: [
+      {
+        name: { type: String, required: true },
+        questions: [
+          {
+            text: { type: String, required: true }, // Fixed: Removed nested 'text' property
+            answers: [{ type: String, required: true }],
+          },
+        ],
+        funBreak: { type: String, required: true },
+      },
+    ],
+    required: true,
+  })
+  phases: {
+    name: string;
+    questions: {
+      text: string;
+      answers: string[];
+    }[];
+    funBreak: string;
+  }[];
 
-  @Prop({ type: [String], index: true })
-  answers: string[];
+  @Prop({
+    type: [
+      {
+        phaseIndex: { type: Number, required: true },
+        questionIndex: { type: Number, required: true },
+        answer: { type: String, required: true },
+      },
+    ],
+    default: [],
+  })
+  userAnswers: { phaseIndex: number; questionIndex: number; answer: string }[];
 
-  @Prop({ type: Object, index: true })
+  @Prop({ type: Object })
   analysis: any;
+
+  @Prop({ required: true, index: true })
+  ageRange: string;
 
   @Prop({ default: false, index: true })
   completed: boolean;

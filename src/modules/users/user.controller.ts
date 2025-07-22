@@ -9,11 +9,13 @@ import {
   Param,
   ParseIntPipe,
   UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AiService } from '../ai/ai.service';
 import { UserService } from './user.service';
 import {
+  CreateQuizDto,
   SubmitAnswersDto,
   UserProfileDto,
   UserRole,
@@ -69,9 +71,13 @@ export class UserController {
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(UserRole.STUDENT)
-  @Get('quiz')
-  async getQuiz(@CurrentUser() user: User) {
-    return this.aiService.generateCareerQuiz(user);
+  @Post('quiz')
+  async getQuiz(@Body() createQuizDto: CreateQuizDto, @CurrentUser() user: User) {
+    if(!user) {
+      throw new NotFoundException('User not found');
+
+    }
+    return this.aiService.generateCareerQuiz(user, createQuizDto.ageRange);
   }
 
 

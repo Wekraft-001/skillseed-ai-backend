@@ -36,12 +36,17 @@ export class AiService {
     private readonly eduContentModel: Model<EducationalContentDocument>,
   ) {
     this.openai = new OpenAI({
-      apiKey: this.configService.get<string>('OPEN_API_KEY'),
+      apiKey: this.configService.get<string>('OPENAI_API_KEY'),
       maxRetries: 2,
     });
   }
 
-  async generateCareerQuiz(user: User): Promise<CareerQuiz> {
+  async generateCareerQuiz(user: User, userAgeRange: string): Promise<CareerQuiz> {
+    const validAgeRanges = ['6-8', '9-12', '13-15', '16-17'];
+    if (!validAgeRanges.includes(userAgeRange)) {
+      throw new BadRequestException(`Invalid userAgeRange: ${userAgeRange}. Must be one of: ${validAgeRanges.join(', ')}`);
+    }
+
     const ageScales = {
       '6-8': {
         scale: [
@@ -154,7 +159,7 @@ export class AiService {
 
     const quiz = await this.quizModel.create({
       user: user._id,
-      // ageRange,
+      ageRange,
       phases: quizContent.phases,
       completed: false,
       answers: [],
@@ -162,7 +167,6 @@ export class AiService {
     });
 
     return quiz;
-
   }
 
   async getAllQuizzes(currentUser: User): Promise<CareerQuiz[]> {
@@ -183,10 +187,10 @@ export class AiService {
     if (
       !dto.answers ||
       !Array.isArray(dto.answers) ||
-      dto.answers.length !== quiz.questions.length ||
+      dto.answers.length !== quiz.phases.length ||
       !dto.answers.every(
         (a) =>
-          typeof a.questionIndex === 'number' && typeof a.answers === 'string',
+          typeof a.questionIndex === 'number' && typeof a.answer === 'string',
       )
     ) {
       throw new BadRequestException(
@@ -194,9 +198,22 @@ export class AiService {
       );
     }
 
+    // const answers = dto.answers
+    //   .sort((a, b) => a.phaseIndex - b.phaseIndex)
+    //   .map((a) => a.answer);
+
     const answers = dto.answers
-      .sort((a, b) => a.questionIndex - b.questionIndex)
-      .map((a) => a.answers);
+      .sort((a, b) =>
+        a.phaseIndex !== b.phaseIndex
+          ? a.phaseIndex - b.phaseIndex
+          : a.questionIndex - b.questionIndex,
+      )
+      .map((a) => {
+        const questionText =
+          quiz.phases[a.phaseIndex].questions[a.questionIndex].text;
+        return `Question: ${questionText}\nAnswer: ${a.answer}`;
+      })
+      .join('\n\n');
 
     const prompt = `Given the following answers from a child... 
       You are a career counselor analyzing a student's responses to career assessment questions. 
@@ -221,7 +238,7 @@ export class AiService {
 
     const analysis = response.choices[0].message.content || '';
 
-    quiz.answers = answers;
+    quiz.userAnswers = dto.answers;
     quiz.completed = true;
     quiz.analysis = analysis;
     await quiz.save();
@@ -230,7 +247,7 @@ export class AiService {
       analysis,
       quizId: quiz._id.toString(),
       userId: quiz.user._id.toString(),
-      answers: quiz.answers,
+      answers: quiz.userAnswers,
     };
   }
 
@@ -264,7 +281,7 @@ export class AiService {
       .findOne({ _id: dto.quizId, user: userId })
       .exec();
 
-    if (!quiz || !quiz.completed || !quiz.analysis || !quiz.answers) {
+    if (!quiz || !quiz.completed || !quiz.analysis || !quiz.userAnswers) {
       throw new BadRequestException(
         'Quiz is not completed or missing answers/analysis',
       );
@@ -283,7 +300,7 @@ export class AiService {
       profileOutcome,
       quizId: quiz._id.toString(),
       userId: user._id.toString(),
-      answers: quiz.answers,
+      answers: quiz.userAnswers,
       previousAnalysis: quiz.analysis,
     };
   }

@@ -5,14 +5,13 @@ import { School } from '../school.schema';
 
 export type UserDocument = User &
   Document & {
-    _id: Types.ObjectId;
+    // _id: Types.ObjectId;
     school: Types.ObjectId;
     createdBy: Types.ObjectId;
   };
 
 @Schema({ timestamps: true, collection: 'users', autoIndex: true })
 export class User extends Document {
-  // _id: Types.ObjectId;
 
   @Prop({ required: true, index: true })
   firstName: string;

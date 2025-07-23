@@ -39,40 +39,11 @@ export class AuthController {
     private readonly parentDashboardService: ParentDashboardService,
   ) {}
 
-  @Post('register')
-  @ApiTags('Authentication')
-  @ApiResponse({
-    status: HttpStatus.CREATED,
-    description: 'User registered successfully',
-  })
-  @ApiResponse({
-    status: HttpStatus.BAD_REQUEST,
-    description: 'Invalid input data',
-  })
-  @ApiResponse({
-    status: HttpStatus.CONFLICT,
-    description: 'User already exists',
-  })
-  @ApiOperation({ summary: 'Register a new user ' })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
-    description: 'User registered successfully',
-  })
-  @ApiResponse({
-    status: HttpStatus.BAD_REQUEST,
-    description: 'Invalid input data',
-  })
-  @ApiResponse({
-    status: HttpStatus.CONFLICT,
-    description: 'User already exists',
-  })
-  @ApiBadRequestResponse({
-    description: 'Bad Request - Invalid input data',
-  })
-  @UsePipes(new SanitizePipe())
-  register(@Body() dto: CreateAdminOrParentDto) {
-    return this.authService.registerAdminOrParent(dto);
-  }
+  
+  // @UsePipes(new SanitizePipe())
+  // register(@Body() dto: CreateAdminOrParentDto) {
+  //   return this.authService.registerAdminOrParent(dto);
+  // }
 
   @Get('google')
   @UseGuards(GoogleAuthGuard)
@@ -143,46 +114,46 @@ export class AuthController {
     }
   }
 
-  @ApiTags('Authentication')
-  @ApiResponse({
-    status: HttpStatus.CREATED,
-    description: 'User registered successfully',
-  })
-  @ApiResponse({
-    status: HttpStatus.BAD_REQUEST,
-    description: 'Invalid input data',
-  })
-  @ApiResponse({
-    status: HttpStatus.CONFLICT,
-    description: 'User already exists',
-  })
-  @ApiOperation({ summary: 'Register a new user ' })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
-    description: 'User registered successfully',
-  })
-  @ApiResponse({
-    status: HttpStatus.BAD_REQUEST,
-    description: 'Invalid input data',
-  })
-  @ApiResponse({
-    status: HttpStatus.CONFLICT,
-    description: 'User already exists',
-  })
-  @ApiBadRequestResponse({
-    description: 'Bad Request - Invalid input data',
-  })
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.PARENT, UserRole.SCHOOL_ADMIN)
-  @Post('addStudent')
-  @UseInterceptors(FileInterceptor('image'))
-  async registerStudent(
-    @UploadedFile() image: Express.Multer.File,
-    @Body() createStudentDto: CreateStudentDto,
-    @CurrentUser() user: User,
-  ) {
-    return this.parentDashboardService.registerStudentByParent(createStudentDto, user, image);
-  }
+  // @ApiTags('Authentication')
+  // @ApiResponse({
+  //   status: HttpStatus.CREATED,
+  //   description: 'User registered successfully',
+  // })
+  // @ApiResponse({
+  //   status: HttpStatus.BAD_REQUEST,
+  //   description: 'Invalid input data',
+  // })
+  // @ApiResponse({
+  //   status: HttpStatus.CONFLICT,
+  //   description: 'User already exists',
+  // })
+  // @ApiOperation({ summary: 'Register a new user ' })
+  // @ApiResponse({
+  //   status: HttpStatus.CREATED,
+  //   description: 'User registered successfully',
+  // })
+  // @ApiResponse({
+  //   status: HttpStatus.BAD_REQUEST,
+  //   description: 'Invalid input data',
+  // })
+  // @ApiResponse({
+  //   status: HttpStatus.CONFLICT,
+  //   description: 'User already exists',
+  // })
+  // @ApiBadRequestResponse({
+  //   description: 'Bad Request - Invalid input data',
+  // })
+  // @UseGuards(AuthGuard('jwt'), RolesGuard)
+  // @Roles(UserRole.PARENT, UserRole.SCHOOL_ADMIN)
+  // @Post('addStudent')
+  // @UseInterceptors(FileInterceptor('image'))
+  // async registerStudent(
+  //   @UploadedFile() image: Express.Multer.File,
+  //   @Body() createStudentDto: CreateStudentDto,
+  //   @CurrentUser() user: User,
+  // ) {
+  //   return this.parentDashboardService.registerStudentByParent(createStudentDto, user, image);
+  // }
 
   
   @Post('signin')

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ParentDashboardService } from '../services/dashboard.service';
 import { ParentDashboardController } from '../controllers/dashboard.controller';
@@ -6,7 +6,8 @@ import { School, SchoolSchema, User, UserSchema } from '../../../schemas/index';
 import { LoggerModule } from 'src/common/logger/logger.module';
 import { Subscription } from 'rxjs';
 import { SubscriptionSchema } from 'src/modules/schemas/subscription.schema';
-import { SubscriptionModule } from 'src/subscription/subscription.module';
+import { SubscriptionModule } from '../../../../subscription/subscription.module';
+import { PaymentModule } from 'src/payment/payment.module';
 
 @Module({
   imports: [
@@ -16,10 +17,11 @@ import { SubscriptionModule } from 'src/subscription/subscription.module';
       { name: Subscription.name, schema: SubscriptionSchema },
     ]),
     LoggerModule,
-    SubscriptionModule,
+    forwardRef(() => SubscriptionModule),
+    forwardRef(() => PaymentModule),
   ],
   controllers: [ParentDashboardController],
   providers: [ParentDashboardService],
-  exports: [ParentDashboardService]
+  exports: [ParentDashboardService],
 })
 export class ParentDashboardModule {}

@@ -3,6 +3,8 @@ import {
   BadRequestException,
   HttpException,
   HttpStatus,
+  forwardRef,
+  Inject,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosResponse } from 'axios';
@@ -10,6 +12,8 @@ import { LoggerService } from 'src/common/logger/logger.service';
 import {
   CardDetails,
   CardPaymentRequest,
+  CreateSchoolDto,
+  CreateSubscriptionDto,
   CustomerDataDto,
   FlutterwaveCharge,
   FlutterwaveCustomer,
@@ -25,6 +29,9 @@ import { Subscription } from 'rxjs';
 import { SubscriptionDocument } from 'src/modules/schemas/subscription.schema';
 import { Model } from 'mongoose';
 import { User } from 'src/modules/schemas';
+import { ParentDashboardService } from 'src/modules/dashboard/parents/services/dashboard.service';
+import { CreateStudentDto, TempStudentDataDto } from 'src/modules/auth/dtos';
+import { Create } from 'sharp';
 
 @Injectable()
 export class PaymentService {
@@ -35,8 +42,10 @@ export class PaymentService {
   constructor(
     private configService: ConfigService,
     private readonly logger: LoggerService,
-    @InjectModel(Subscription.name) private subscriptionModel: Model<SubscriptionDocument>,
-
+    @Inject(forwardRef(() => ParentDashboardService))
+    private readonly parentDashboardService: ParentDashboardService,
+    @InjectModel(Subscription.name)
+    private subscriptionModel: Model<SubscriptionDocument>,
   ) {
     this.flutterwaveUrl = process.env.FLW_BASE_URL;
     this.secretKey = this.configService.get<string>('FLW_SECRET_KEY');
@@ -56,15 +65,16 @@ export class PaymentService {
         customer: {
           email: customerData.email,
           name: `${customerData.name.first} ${customerData.name.last}`,
-          phonenumber: `+${customerData.phone.country_code}${customerData.phone.number}`,
+          phonenumber: customerData.phonenumber,
         },
         redirect_url:
-          customerData.redirect_url ||
-          'https://skillseedparent/subscription/success',
+          customerData.redirect_url || 'https://parents.wekraft.co/addChild',
       };
 
       this.logger.log(`Creating payment at: ${url}`);
-      this.logger.log(`Payload >>>>>>>>>>>>>>>>>>: ${JSON.stringify(paymentData, null, 2)}`);
+      this.logger.log(
+        `Payload >>>>>>>>>>>>>>>>>>: ${JSON.stringify(paymentData, null, 2)}`,
+      );
       this.logger.log(
         `Headers: Authorization: Bearer ${this.secretKey?.substring(0, 20)}...`,
       );
@@ -87,12 +97,10 @@ export class PaymentService {
         `Payment initiated$$$$$$$$$$ : ${JSON.stringify(response.data.data)}`,
       );
 
-
       const customer = response.data;
       this.logger.log(`Customer created: ${JSON.stringify(customer)}`);
 
       return customer;
-
     } catch (error) {
       this.logger.error(
         'Flutterwave API Error:',
@@ -107,8 +115,9 @@ export class PaymentService {
     }
   }
 
-
-  async createFlutterwaveVirtualAccount(customerData: any): Promise<FlutterwavePaymentInitiationResponse> {
+  async createFlutterwaveVirtualAccount(
+    customerData: any,
+  ): Promise<FlutterwavePaymentInitiationResponse> {
     try {
       const url = `${this.flutterwaveUrl}/virtual-account-numbers`;
       const paymentData = {
@@ -120,13 +129,17 @@ export class PaymentService {
         phonenumber: customerData.phonenumber,
         frequency: customerData.frequency || 'once',
         is_permanent: customerData.is_permanent || false,
-        bvn: '', 
-        narration: `Payment for subscription ${customerData.tx_ref}`, 
+        bvn: '',
+        narration: `Payment for subscription ${customerData.tx_ref}`,
       };
 
       this.logger.log(`Creating virtual account at: ${url}`);
-      this.logger.log(`Payload >>>>>>>>>>>>>>>>>>: ${JSON.stringify(paymentData, null, 2)}`);
-      this.logger.log(`Headers: Authorization: Bearer ${this.secretKey?.substring(0, 20)}...`);
+      this.logger.log(
+        `Payload >>>>>>>>>>>>>>>>>>: ${JSON.stringify(paymentData, null, 2)}`,
+      );
+      this.logger.log(
+        `Headers: Authorization: Bearer ${this.secretKey?.substring(0, 20)}...`,
+      );
 
       const response: AxiosResponse = await axios.post(url, paymentData, {
         headers: {
@@ -138,39 +151,45 @@ export class PaymentService {
       });
 
       if (response.data.status !== 'success') {
-        this.logger.error('Failed to create virtual account', JSON.stringify(response.data));
+        this.logger.error(
+          'Failed to create virtual account',
+          JSON.stringify(response.data),
+        );
         throw new BadRequestException('Failed to create virtual account');
       }
 
-      this.logger.log(`Virtual account created: ${JSON.stringify(response.data)}`);
+      this.logger.log(
+        `Virtual account created: ${JSON.stringify(response.data)}`,
+      );
       return response.data;
     } catch (error) {
-      this.logger.error('Flutterwave API Error:', JSON.stringify({
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        headers: error.response?.headers,
-      }));
+      this.logger.error(
+        'Flutterwave API Error:',
+        JSON.stringify({
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+          headers: error.response?.headers,
+        }),
+      );
       throw new BadRequestException('Failed to create virtual account');
     }
   }
-
 
   async purchaseChild(subscriptionId: string, user: User) {
     const currentSubcription = await this.subscriptionModel.findById(
       subscriptionId,
       // child: user._id.toString(),
     );
-
-
-
   }
 
-
-
-  async verifyPayment(transactionId: string): Promise<any> {
+  async verifyPayment(
+    createStudentDto: TempStudentDataDto,
+    subscriptionData: any,
+    currentUser: User,
+  ): Promise<any> {
     try {
-      const url = `${this.flutterwaveUrl}/transactions/${transactionId}/verify`;
+      const url = `${this.flutterwaveUrl}/transactions/${subscriptionData.flutterwaveTransactionId}/verify`;
 
       this.logger.log(`Verifying payment at: ${url}`);
 
@@ -186,7 +205,21 @@ export class PaymentService {
         throw new BadRequestException('Payment verification failed');
       }
 
-      this.logger.log(`Payment verified successfully: ${transactionId}`);
+      this.logger.log(
+        `Payment verified successfully: ${subscriptionData.flutterwaveTransactionId}`,
+      );
+      const registrationCompleted =
+        await this.parentDashboardService.completeStudentRegistration(
+          createStudentDto,
+          subscriptionData,
+          currentUser,
+        );
+      if (!registrationCompleted) {
+        this.logger.error(
+          'Failed to complete student registration after payment verification',
+        );
+      }
+
       return response.data;
     } catch (error) {
       this.logger.error(
@@ -227,5 +260,4 @@ export class PaymentService {
       throw new BadRequestException('Failed to get transaction details');
     }
   }
-
 }

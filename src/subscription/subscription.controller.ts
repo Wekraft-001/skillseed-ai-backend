@@ -28,6 +28,10 @@ import { Subscription } from 'rxjs';
 import { Model } from 'mongoose';
 import { SubscriptionDocument } from 'src/modules/schemas/subscription.schema';
 import { PaymentService } from 'src/payment/payment.service';
+import { RolesGuard } from 'src/modules/auth/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { CreateStudentDto } from 'src/modules/auth/dtos';
+import { create } from 'domain';
 
 @Controller('subscriptions')
 @UseGuards(JwtAuthGuard)
@@ -62,9 +66,9 @@ export class SubscriptionController {
   }
 
   @Get('success')
-  async handlePaymentSuccess(@Query() query: any, @Res() res: Response) {
+  async handlePaymentSuccess(@Query() query: any, @Res() res: Response, @CurrentUser() user: User, createStudentDto: CreateStudentDto) {
     const { transaction_id, tx_ref, childTempId } = query;
-    const isVerified = await this.paymentService.verifyPayment(transaction_id);
+    const isVerified = await this.paymentService.verifyPayment(transaction_id, createStudentDto, user);
 
     if (!isVerified) {
       return res.redirect('/subscription/failed');
@@ -90,25 +94,36 @@ export class SubscriptionController {
     });
   }
 
-  @Post('verify-payment')
-  async verifyPayment(
-    @Body() verifyPaymentDto: VerifyPaymentDto,
-    @Request() req,
-  ) {
-    const user = req.user;
-
+  @Get('all-active-subsc')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.PARENT, UserRole.SCHOOL_ADMIN, UserRole.SUPER_ADMIN)
+  async getAllActiveSubscriptions(@CurrentUser() user: User){ 
     if (user.role !== UserRole.PARENT) {
-      throw new BadRequestException('Only parents can verify payments');
+      throw new BadRequestException('Only parents or school admins can view subscriptions');
     }
 
-    return this.subscriptionService.verifyPayment(
-      verifyPaymentDto.transactionRef,
-    );
+    return this.subscriptionService.getActiveSubscription(user);
+    
   }
 
+  // @Post('verify-payment')
+  // async verifyPayment(
+  //   @Body() verifyPaymentDto: VerifyPaymentDto,
+  //   @Request() req,
+  // ) {
+  //   const user = req.user;
+
+  //   if (user.role !== UserRole.PARENT) {
+  //     throw new BadRequestException('Only parents can verify payments');
+  //   }
+
+  //   return this.subscriptionService.verifyPayment(
+  //     verifyPaymentDto.transactionRef,
+  //   );
+  // }
+
   @Get('status')
-  async getSubscriptionStatus(@Request() req) {
-    const user = req.user;
+  async getSubscriptionStatus(@CurrentUser() user: User) {
 
     if (user.role !== UserRole.PARENT) {
       throw new BadRequestException(
@@ -116,7 +131,7 @@ export class SubscriptionController {
       );
     }
 
-    return this.subscriptionService.getSubscriptionStatus(user._id);
+    return this.subscriptionService.getSubscriptionStatus(user);
   }
 
   @Get('can-add-child')

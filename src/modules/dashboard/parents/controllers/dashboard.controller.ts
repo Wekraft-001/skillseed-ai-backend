@@ -14,13 +14,15 @@ import { ParentDashboardService } from '../services/dashboard.service';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/modules/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
-import { UserRole } from 'src/common/interfaces';
-import { CreateStudentDto } from 'src/modules/auth/dtos';
+import { CreateSubscriptionDto, UserRole } from 'src/common/interfaces';
+import { CreateStudentDto, TempStudentDataDto } from 'src/modules/auth/dtos';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { LoggerService } from 'src/common/logger/logger.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from 'src/modules/schemas';
 import { Model } from 'mongoose';
+import { CurrentUser } from 'src/common/decorators';
+import { ApiBadRequestResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @Controller('parent/dashboard')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -40,20 +42,52 @@ export class ParentDashboardController {
     return this.parentDashboardService.getDashboardData(currentUser);
   }
 
+  @ApiTags('Authentication')
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'User registered successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid input data',
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'User already exists',
+  })
+  @ApiOperation({ summary: 'Register a new user ' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'User registered successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid input data',
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'User already exists',
+  })
+  @ApiBadRequestResponse({
+    description: 'Bad Request - Invalid input data',
+  })
   @Post('register-student')
   @UseInterceptors(FileInterceptor('image'))
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.PARENT)
   async registerStudent(
     @UploadedFile() image: Express.Multer.File,
-    @Body() createStudentDto: CreateStudentDto,
-    @Request() req,
+    @Body() body: TempStudentDataDto,
+    @CurrentUser() user: User,
   ) {
-    const currentUser = req.user;
-    return this.parentDashboardService.registerStudentByParent(
-      createStudentDto,
-      currentUser,
-      image,
+    // const currentUser = req.user;
+    return this.parentDashboardService.initiateStudentRegistration(
+      body,
+      user,
+      image
     );
   }
+
 
   @Get('students')
   @HttpCode(HttpStatus.OK)

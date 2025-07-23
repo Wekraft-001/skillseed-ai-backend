@@ -21,6 +21,7 @@ import { LoggerService } from 'src/common/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { v4 as uuidv4 } from 'uuid';
 import { child } from 'winston';
+import { json } from 'stream/consumers';
 
 @Injectable()
 export class SubscriptionService {
@@ -43,44 +44,30 @@ export class SubscriptionService {
         throw new BadRequestException('User not found');
       }
 
-      const pendingSubscription = await this.subscriptionModel.findOne({
-        user: userId,
-        status: SubscriptionStatus.PENDING,
-        paymentStatus: PaymentStatus.PENDING,
-      });
+      // const pendingSubscription = await this.subscriptionModel.findOne({
+      //   user: userId,
+      //   status: SubscriptionStatus.PENDING,
+      //   paymentStatus: PaymentStatus.PENDING,
+      // });
 
-      const childTempId = `student-${uuidv4()}`;
+      // const childTempId = `student-${uuidv4()}`;
       const transactionRef = `subscription-${uuidv4()}`;
-      this.logger.log(
-        `Generated transactionRef: ${transactionRef} ********* Generated childTempId: ${childTempId}`,
-      );
+      // this.logger.log(
+      //   `Generated transactionRef: ${transactionRef} ********* Generated childTempId: ${childTempId}`,
+      // );
 
       const customerData = {
         amount: subscriptionData.amount,
         currency: subscriptionData.currency || 'RWF',
         redirect_url: subscriptionData.redirect_url,
         tx_ref: transactionRef,
-        name: {
-          first: user.firstName || '',
-          middle: '',
-          last: user.lastName || '',
-        },
-        phone: {
-          country_code: '250',
-          number: user.phoneNumber.toString(),
-        },
+        name: `${user.firstName} ${user.lastName}`,
+        phonenumber: `+250${user.phoneNumber}`,
         email: user.email,
-        address: {
-          city: 'Kigali',
-          country: 'USD',
-          line1: '',
-          line2: '',
-          postal_code: '',
-          state: 'Kigali',
-        },
+
       };
 
-      this.logger.log(`Creating customer for user ${userId}`);
+      this.logger.log(`Creating customer for user ${userId} with customer data: ${JSON.stringify(customerData, null, 2)}  `);
 
       const hostedPayment =
         await this.paymentService.createFlutterwaveCustomer(customerData);
@@ -105,7 +92,7 @@ export class SubscriptionService {
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         childrenCount: 0,
         child: null,
-        childTempId,
+        childTempId: subscriptionData.childTempId,
         maxChildren: 30,
       });
 
@@ -118,7 +105,7 @@ export class SubscriptionService {
         subscription,
         authorizationUrl: hostedLink,
         reference: transactionRef,
-        childTempId,
+        // childTempId,
       };
     } catch (error) {
       this.logger.error('Error creating subscription', error);
@@ -237,86 +224,86 @@ export class SubscriptionService {
     return subscription;
   }
 
-  async verifyPayment(transactionRef: string, transactionId?: string) {
-    try {
-      this.logger.log(
-        `🔍 Verifying payment for txRef: ${transactionRef}, transactionId: ${transactionId}`,
-      );
+  // async verifyPayment(transactionRef: string, transactionId?: string) {
+  //   try {
+  //     this.logger.log(
+  //       `🔍 Verifying payment for txRef: ${transactionRef}, transactionId: ${transactionId}`,
+  //     );
 
-      const subscription = await this.subscriptionModel.findOne({
-        transactionRef,
-      });
-      if (!subscription) {
-        this.logger.error(
-          `❌ Subscription not found for txRef: ${transactionRef}`,
-        );
+  //     const subscription = await this.subscriptionModel.findOne({
+  //       transactionRef,
+  //     });
+  //     if (!subscription) {
+  //       this.logger.error(
+  //         `❌ Subscription not found for txRef: ${transactionRef}`,
+  //       );
 
-        const allSubscriptions = await this.subscriptionModel
-          .find({
-            transactionRef: { $regex: transactionRef.split('-')[0] },
-          })
-          .select('transactionRef status user createdAt');
+  //       const allSubscriptions = await this.subscriptionModel
+  //         .find({
+  //           transactionRef: { $regex: transactionRef.split('-')[0] },
+  //         })
+  //         .select('transactionRef status user createdAt');
 
-        this.logger.log(
-          `📋 Found ${allSubscriptions.length} subscriptions with similar txRef prefix:`,
-        );
-        allSubscriptions.forEach((sub) => {
-          this.logger.log(
-            `  - ${sub.transactionRef} | Status: ${sub.status} | User: ${sub.user} `,
-          );
-        });
+  //       this.logger.log(
+  //         `📋 Found ${allSubscriptions.length} subscriptions with similar txRef prefix:`,
+  //       );
+  //       allSubscriptions.forEach((sub) => {
+  //         this.logger.log(
+  //           `  - ${sub.transactionRef} | Status: ${sub.status} | User: ${sub.user} `,
+  //         );
+  //       });
 
-        throw new BadRequestException('Subscription not found');
-      }
+  //       throw new BadRequestException('Subscription not found');
+  //     }
 
-      this.logger.log(
-        `✅ Found subscription: ${subscription._id} | Status: ${subscription.status} | User: ${subscription.user}`,
-      );
-      //checking if subsc. already active
-      if (subscription.status === SubscriptionStatus.ACTIVE) {
-        this.logger.log(
-          `⚠️  Subscription ${subscription._id} already active, skipping verification`,
-        );
-        return {
-          subscription,
-          message: 'Payment already verified',
-          alreadyProcessed: true,
-        };
-      }
+  //     this.logger.log(
+  //       `✅ Found subscription: ${subscription._id} | Status: ${subscription.status} | User: ${subscription.user}`,
+  //     );
+  //     //checking if subsc. already active
+  //     if (subscription.status === SubscriptionStatus.ACTIVE) {
+  //       this.logger.log(
+  //         `⚠️  Subscription ${subscription._id} already active, skipping verification`,
+  //       );
+  //       return {
+  //         subscription,
+  //         message: 'Payment already verified',
+  //         alreadyProcessed: true,
+  //       };
+  //     }
 
-      if (!subscription.flutterwaveTransactionId) {
-        throw new BadRequestException('No payment transaction found');
-      }
+  //     if (!subscription.flutterwaveTransactionId) {
+  //       throw new BadRequestException('No payment transaction found');
+  //     }
 
-      this.logger.log(`🔄 Verifying payment with Flutterwave...`);
-      const verificationResponse = await this.paymentService.verifyPayment(
-        subscription.flutterwaveTransactionId,
-      );
+  //     this.logger.log(`🔄 Verifying payment with Flutterwave...`);
+  //     const verificationResponse = await this.paymentService.verifyPayment(
+  //       subscription.flutterwaveTransactionId,
+  //     );
 
-      this.logger.log(`📊 Flutterwave response status: ${verificationResponse?.status}`);
+  //     this.logger.log(`📊 Flutterwave response status: ${verificationResponse?.status}`);
 
-      if (
-        verificationResponse.status === 'success' &&
-        verificationResponse.data.status === 'successful'
-      ) {
-        subscription.status = SubscriptionStatus.ACTIVE;
-        subscription.isActive = true;
-        await subscription.save();
+  //     if (
+  //       verificationResponse.status === 'success' &&
+  //       verificationResponse.data.status === 'successful'
+  //     ) {
+  //       subscription.status = SubscriptionStatus.ACTIVE;
+  //       subscription.isActive = true;
+  //       await subscription.save();
 
-        this.logger.log(`Subscription activated: ${transactionRef}`);
-        return { success: true, subscription };
-      } else {
-        this.logger.warn(`Payment verification failed for ${transactionRef}`);
-        return { success: false, message: 'Payment verification failed' };
-      }
-    } catch (error) {
-      this.logger.error('Error verifying payment', error);
-      throw error;
-    }
-  }
+  //       this.logger.log(`Subscription activated: ${transactionRef}`);
+  //       return { success: true, subscription };
+  //     } else {
+  //       this.logger.warn(`Payment verification failed for ${transactionRef}`);
+  //       return { success: false, message: 'Payment verification failed' };
+  //     }
+  //   } catch (error) {
+  //     this.logger.error('Error verifying payment', error);
+  //     throw error;
+  //   }
+  // }
 
-  async incrementChildrenCount(userId: string): Promise<void> {
-    const subscription = await this.getActiveSubscription(userId);
+  async incrementChildrenCount(currentUser: User): Promise<void> {
+    const subscription = await this.getActiveSubscription(currentUser);
     if (subscription) {
       subscription.childrenCount += 1;
       await subscription.save();
@@ -387,18 +374,18 @@ export class SubscriptionService {
   }
 
   async getActiveSubscription(
-    userId: string,
+    currentUser: User,
   ): Promise<SubscriptionDocument | null> {
     return this.subscriptionModel.findOne({
-      user: userId,
+      user: currentUser._id,
       status: SubscriptionStatus.ACTIVE,
       isActive: true,
       endDate: { $gt: new Date() },
-    });
+    }).populate('user');
   }
 
-  async getSubscriptionStatus(userId: string) {
-    const subscription = await this.getActiveSubscription(userId);
+  async getSubscriptionStatus(currentUser: User ) {
+    const subscription = await this.getActiveSubscription(currentUser);
     if (!subscription) {
       return {
         hasActiveSubscription: false,

@@ -12,13 +12,15 @@ export class CreateSubscriptionDto {
   @IsString()
   currency: string;
 
-  @ValidateNested()
-  @Type(() => CustomerDataDto)
-  customer: CustomerDataDto;
+  @IsString()
+  childTempId?: string;
+  // @ValidateNested()
+  // @Type(() => CustomerDataDto)
+  // customer: CustomerDataDto;
 
-  @ValidateNested()
-  @Type(() => CardDetails)
-  card: CardDetails;
+  // @ValidateNested()
+  // @Type(() => CardDetails)
+  // card: CardDetails;
 
   @IsNotEmpty()
   @IsString()

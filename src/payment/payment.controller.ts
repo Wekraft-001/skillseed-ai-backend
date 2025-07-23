@@ -26,10 +26,10 @@ export class PaymentController {
     );
   }
 
-  @Get('verify/:transactionRef')
-  async verifyPayment(@Param('transactionRef') transactionRef: string) {
-    return this.subscriptionService.verifyPayment(transactionRef);
-  }
+  // @Get('verify/:transactionRef')
+  // async verifyPayment(@Param('transactionRef') transactionRef: string) {
+  //   return this.subscriptionService.verifyPayment(transactionRef);
+  // }
 
 
 }

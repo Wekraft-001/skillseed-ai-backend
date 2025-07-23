@@ -21,10 +21,11 @@ import { Subscription } from 'rxjs';
 import { SubscriptionService } from 'src/subscription/subscription.service';
 import { SubscriptionDocument } from 'src/modules/schemas/subscription.schema';
 import { v4 as uuidv4 } from 'uuid';
-import passport from 'passport';
 
 @Injectable()
 export class ParentDashboardService {
+  private tempStudentsStorage: Record<string, any> = {};
+
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<User>,
@@ -79,33 +80,40 @@ export class ParentDashboardService {
     const childTempId = `student-${uuidv4()}`;
     const imageUrl = image ? await uploadToAzureStorage(image) : '';
 
-     const hashedPassword = await bcrypt.hash(createStudentDto.password, 10);
+    const hashedPassword = await bcrypt.hash(createStudentDto.password, 10);
+
+    const tempStudentData: TempStudentDataDto = {
+      firstName: createStudentDto.firstName,
+      lastName: createStudentDto.lastName,
+      age: createStudentDto.age,
+      grade: createStudentDto.grade,
+      imageUrl,
+      role: UserRole.STUDENT,
+      password: hashedPassword,
+      childTempId,
+    };
+
+    this.tempStudentsStorage[childTempId] = tempStudentData;
 
     return {
-      // paymentLink: createChildPayment.authorizationUrl,
-      // reference: createChildPayment.reference,
-      // childTempId,
-      // message:
-      tempData: {
-        firstName: createStudentDto.firstName,
-        lastName: createStudentDto.lastName,
-        age: createStudentDto.age,
-        grade: createStudentDto.grade,
-        imageUrl,
-        role: UserRole.STUDENT,
-        password: hashedPassword,
-        childTempId,
-      },
+      tempData: tempStudentData,
       message:
         'Student draft data collected. Complete payment to finish student registration.',
     };
   }
 
   async completeStudentRegistration(
-    tempStudentData: TempStudentDataDto,
+    childTempId: string,
     subscriptionData: CreateSubscriptionDto,
     currentUser: User,
   ) {
+    const tempStudentData = this.tempStudentsStorage[childTempId];
+    if (!tempStudentData) {
+      throw new NotFoundException('Temporary student data not found.');
+    }
+
+    delete this.tempStudentsStorage[childTempId];
+
     const session = await this.userModel.db.startSession();
     session.startTransaction();
 
@@ -119,8 +127,6 @@ export class ParentDashboardService {
           'Please complete payment before registering your child.',
         );
       }
-
-     
 
       const createChildPayment =
         await this.subscriptionService.createSubscriptionWithCardPayment(
@@ -140,29 +146,23 @@ export class ParentDashboardService {
       }
 
       const newUser = new this.userModel({
-        firstName: tempStudentData.firstName,
-        lastName: tempStudentData.lastName,
-        age: tempStudentData.age,
-        grade: tempStudentData.grade,
-        imageUrl: tempStudentData.imageUrl,
-        role: UserRole.STUDENT,
-        password: tempStudentData.password,
+        // firstName: tempStudentData.firstName,
+        // lastName: tempStudentData.lastName,
+        // age: tempStudentData.age,
+        // grade: tempStudentData.grade,
+        // imageUrl: tempStudentData.imageUrl,
+        // role: UserRole.STUDENT,
+        // password: tempStudentData.password,
+        ...tempStudentData,
         createdBy: {
           name: currentUser.firstName + ' ' + currentUser.lastName,
           email: currentUser.email,
           role: currentUser.role,
         },
-        // school: currentUser.school,
-        childTempId: tempStudentData.childTempId,
+        // childTempId: tempStudentData.childTempId,
       });
 
       await newUser.save({ session });
-
-      // await this.schoolModel.findByIdAndUpdate(
-      //   currentUser.school,
-      //   { $push: { students: newUser._id } },
-      //   { session },
-      // );
 
       const addedToSubscription =
         await this.subscriptionService.addChildToSubscription(
@@ -195,119 +195,6 @@ export class ParentDashboardService {
       throw error;
     }
   }
-
-  // async registerStudentByParent(
-  //   createStudentDto: CreateStudentDto,
-  //   subscriptionData: CreateSubscriptionDto,
-  //   currentUser: User,
-  //   image?: Express.Multer.File,
-  // ) {
-  //   if (currentUser.role !== UserRole.PARENT) {
-  //     throw new BadRequestException('Only parents can use this route.');
-  //   }
-
-  //   const canAddChild = await this.subscriptionService.canAddChild(
-  //     currentUser._id.toString(),
-  //   );
-
-  //   if (!canAddChild) {
-  //     throw new BadRequestException(
-  //       'Please complete payment before registering your child.',
-  //     );
-  //   }
-
-  //   if (!createStudentDto.childTempId) {
-  //     throw new BadRequestException(
-  //       'Missing childTempId. Cannot link to subscription.',
-  //     );
-  //   }
-
-  //   const childTempId = `student-${uuidv4()}`;
-
-  //   const createChildPayment =
-  //     await this.subscriptionService.createSubscriptionWithCardPayment(
-  //       currentUser._id.toString(),
-  //       {
-  //         amount: subscriptionData.amount,
-  //         currency: subscriptionData.currency || 'RWF',
-  //         redirect_url: subscriptionData.redirect_url,
-  //         childTempId,
-  //       },
-  //     );
-
-  //   if (!createChildPayment.authorizationUrl) {
-  //     throw new NotFoundException('Payment link not found. Please try again.');
-  //   }
-
-  //   const session = await this.userModel.db.startSession();
-  //   session.startTransaction();
-
-  //   try {
-  //     const hashedPassword = await bcrypt.hash(createStudentDto.password, 10);
-
-  //     let imageUrl = '';
-  //     if (image) {
-  //       imageUrl = await uploadToAzureStorage(image);
-  //     }
-
-  //     const newUser = new this.userModel({
-  //       firstName: createStudentDto.firstName,
-  //       lastName: createStudentDto.lastName,
-  //       age: createStudentDto.age,
-  //       grade: createStudentDto.grade,
-  //       imageUrl,
-  //       role: UserRole.STUDENT,
-  //       password: hashedPassword,
-  //       createdBy: {
-  //         name: currentUser.firstName + ' ' + currentUser.lastName,
-  //         email: currentUser.email,
-  //         role: currentUser.role,
-  //       },
-  //       school: currentUser.school,
-  //       childTempId,
-  //       paymentLink: createChildPayment.authorizationUrl,
-  //     });
-
-  //     await newUser.save({ session });
-
-  //     await this.schoolModel.findByIdAndUpdate(
-  //       currentUser.school,
-  //       { $push: { students: newUser._id } },
-  //       { session },
-  //     );
-
-  //     const addingChildToSubscription =
-  //       await this.subscriptionService.addChildToSubscription(
-  //         currentUser._id.toString(),
-  //         newUser._id.toString(),
-  //         createStudentDto.childTempId,
-  //         session,
-  //       );
-
-  //     if (!addingChildToSubscription) {
-  //       throw new BadRequestException('Failed to add child to subscription');
-  //     }
-
-  //     await this.subscriptionService.incrementChildrenCount(currentUser);
-
-  //     await session.commitTransaction();
-  //     session.endSession();
-
-  //     const populatedStudent = await this.userModel
-  //       .findById(newUser._id)
-  //       .populate('createdBy');
-  //     return {
-  //       student: populatedStudent,
-  //       paymentLink: createChildPayment?.authorizationUrl || '',
-  //       message: 'Student registered successfully and payment link created.',
-  //       reference: createChildPayment?.reference || '',
-  //     };
-  //   } catch (error) {
-  //     await session.abortTransaction();
-  //     session.endSession();
-  //     throw error;
-  //   }
-  // }
 
   async getStudentsForUser(user: User) {
     const query: any = { role: UserRole.STUDENT };

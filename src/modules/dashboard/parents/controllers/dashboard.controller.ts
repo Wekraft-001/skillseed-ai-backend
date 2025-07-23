@@ -22,7 +22,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import { User } from 'src/modules/schemas';
 import { Model } from 'mongoose';
 import { CurrentUser } from 'src/common/decorators';
-import { ApiBadRequestResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 @Controller('parent/dashboard')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -80,14 +85,27 @@ export class ParentDashboardController {
     @Body() body: TempStudentDataDto,
     @CurrentUser() user: User,
   ) {
-    // const currentUser = req.user;
     return this.parentDashboardService.initiateStudentRegistration(
       body,
       user,
-      image
+      image,
     );
   }
 
+  @Post('complete-student-registration')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.PARENT)
+  async completeStudentRegistration(
+    @Body()
+    body: { childTempId: string; subscriptionData: CreateSubscriptionDto },
+    @CurrentUser() user: User,
+  ) {
+    return this.parentDashboardService.completeStudentRegistration(
+      body.childTempId,
+      body.subscriptionData,
+      user,
+    );
+  }
 
   @Get('students')
   @HttpCode(HttpStatus.OK)

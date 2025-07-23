@@ -5,6 +5,7 @@ import {
   HttpStatus,
   forwardRef,
   Inject,
+  NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosResponse } from 'axios';
@@ -38,6 +39,7 @@ export class PaymentService {
   private readonly flutterwaveUrl: string;
   private readonly secretKey: string;
   private readonly encryptionKey: string;
+  private tempStudentsStore: Record<string, TempStudentDataDto> = {};
 
   constructor(
     private configService: ConfigService,
@@ -184,7 +186,7 @@ export class PaymentService {
   }
 
   async verifyPayment(
-    createStudentDto: TempStudentDataDto,
+    childTempId: string,
     subscriptionData: any,
     currentUser: User,
   ): Promise<any> {
@@ -208,9 +210,15 @@ export class PaymentService {
       this.logger.log(
         `Payment verified successfully: ${subscriptionData.flutterwaveTransactionId}`,
       );
+
+      const tempStudentData = this.tempStudentsStore[childTempId];
+      if (!tempStudentData) {
+        throw new NotFoundException('Temporary student data not found');
+      }
+
       const registrationCompleted =
         await this.parentDashboardService.completeStudentRegistration(
-          createStudentDto,
+          subscriptionData.childTempId,
           subscriptionData,
           currentUser,
         );
@@ -220,7 +228,7 @@ export class PaymentService {
         );
       }
 
-      return response.data;
+      return { message: 'Payment verified and student registered' };
     } catch (error) {
       this.logger.error(
         'Error verifying payment',

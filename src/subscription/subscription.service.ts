@@ -44,17 +44,7 @@ export class SubscriptionService {
         throw new BadRequestException('User not found');
       }
 
-      // const pendingSubscription = await this.subscriptionModel.findOne({
-      //   user: userId,
-      //   status: SubscriptionStatus.PENDING,
-      //   paymentStatus: PaymentStatus.PENDING,
-      // });
-
-      // const childTempId = `student-${uuidv4()}`;
       const transactionRef = `subscription-${uuidv4()}`;
-      // this.logger.log(
-      //   `Generated transactionRef: ${transactionRef} ********* Generated childTempId: ${childTempId}`,
-      // );
 
       const customerData = {
         amount: subscriptionData.amount,
@@ -64,10 +54,11 @@ export class SubscriptionService {
         name: `${user.firstName} ${user.lastName}`,
         phonenumber: `+250${user.phoneNumber}`,
         email: user.email,
-
       };
 
-      this.logger.log(`Creating customer for user ${userId} with customer data: ${JSON.stringify(customerData, null, 2)}  `);
+      this.logger.log(
+        `Creating customer for user ${userId} with customer data: ${JSON.stringify(customerData, null, 2)}  `,
+      );
 
       const hostedPayment =
         await this.paymentService.createFlutterwaveCustomer(customerData);
@@ -98,7 +89,7 @@ export class SubscriptionService {
 
       await subscription.save();
       this.logger.log(
-        `Subscription created for user ${userId}: ${transactionRef}`,
+        `Subscription created for user ${userId}: check subscription details>>> ${subscription}`,
       );
 
       return {
@@ -136,7 +127,7 @@ export class SubscriptionService {
         name: `${user.firstName || ''} ${user.lastName || ''}`,
         phonenumber: `+${user.phoneNumber.toString()}`,
         frequency: 'once',
-        is_permanent: false, 
+        is_permanent: false,
       };
 
       this.logger.log(`Creating virtual account for user ${userId}`);
@@ -159,7 +150,7 @@ export class SubscriptionService {
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         childrenCount: 0,
         maxChildren: 30,
-        child: null
+        child: null,
       });
 
       await subscription.save();
@@ -224,84 +215,6 @@ export class SubscriptionService {
     return subscription;
   }
 
-  // async verifyPayment(transactionRef: string, transactionId?: string) {
-  //   try {
-  //     this.logger.log(
-  //       `🔍 Verifying payment for txRef: ${transactionRef}, transactionId: ${transactionId}`,
-  //     );
-
-  //     const subscription = await this.subscriptionModel.findOne({
-  //       transactionRef,
-  //     });
-  //     if (!subscription) {
-  //       this.logger.error(
-  //         `❌ Subscription not found for txRef: ${transactionRef}`,
-  //       );
-
-  //       const allSubscriptions = await this.subscriptionModel
-  //         .find({
-  //           transactionRef: { $regex: transactionRef.split('-')[0] },
-  //         })
-  //         .select('transactionRef status user createdAt');
-
-  //       this.logger.log(
-  //         `📋 Found ${allSubscriptions.length} subscriptions with similar txRef prefix:`,
-  //       );
-  //       allSubscriptions.forEach((sub) => {
-  //         this.logger.log(
-  //           `  - ${sub.transactionRef} | Status: ${sub.status} | User: ${sub.user} `,
-  //         );
-  //       });
-
-  //       throw new BadRequestException('Subscription not found');
-  //     }
-
-  //     this.logger.log(
-  //       `✅ Found subscription: ${subscription._id} | Status: ${subscription.status} | User: ${subscription.user}`,
-  //     );
-  //     //checking if subsc. already active
-  //     if (subscription.status === SubscriptionStatus.ACTIVE) {
-  //       this.logger.log(
-  //         `⚠️  Subscription ${subscription._id} already active, skipping verification`,
-  //       );
-  //       return {
-  //         subscription,
-  //         message: 'Payment already verified',
-  //         alreadyProcessed: true,
-  //       };
-  //     }
-
-  //     if (!subscription.flutterwaveTransactionId) {
-  //       throw new BadRequestException('No payment transaction found');
-  //     }
-
-  //     this.logger.log(`🔄 Verifying payment with Flutterwave...`);
-  //     const verificationResponse = await this.paymentService.verifyPayment(
-  //       subscription.flutterwaveTransactionId,
-  //     );
-
-  //     this.logger.log(`📊 Flutterwave response status: ${verificationResponse?.status}`);
-
-  //     if (
-  //       verificationResponse.status === 'success' &&
-  //       verificationResponse.data.status === 'successful'
-  //     ) {
-  //       subscription.status = SubscriptionStatus.ACTIVE;
-  //       subscription.isActive = true;
-  //       await subscription.save();
-
-  //       this.logger.log(`Subscription activated: ${transactionRef}`);
-  //       return { success: true, subscription };
-  //     } else {
-  //       this.logger.warn(`Payment verification failed for ${transactionRef}`);
-  //       return { success: false, message: 'Payment verification failed' };
-  //     }
-  //   } catch (error) {
-  //     this.logger.error('Error verifying payment', error);
-  //     throw error;
-  //   }
-  // }
-
   async incrementChildrenCount(currentUser: User): Promise<void> {
     const subscription = await this.getActiveSubscription(currentUser);
     if (subscription) {
@@ -311,27 +224,32 @@ export class SubscriptionService {
   }
 
   async addChildToSubscription(
-    parentId: string,
-    childId: string,
+    // parentId: string,
+    currentUser: User,
+    // childId: string,
     childTempId: string,
     session?: ClientSession,
   ) {
-
     const subscription = await this.subscriptionModel.findOneAndUpdate(
       {
-        user: parentId,
+        user: currentUser._id.toString(),
         childTempId,
         status: SubscriptionStatus.ACTIVE,
         isActive: true,
         child: null,
       },
       {
-        $set: { child: new Types.ObjectId(childId)},
+        $set: { child: new Types.ObjectId(childTempId) },
       },
       {
         new: true,
         session,
       },
+    );
+
+    this.logger.log(
+      'Found subscription: >>>>>',
+      JSON.stringify(subscription, null, 2),
     );
 
     if (!subscription) {
@@ -340,18 +258,7 @@ export class SubscriptionService {
       );
     }
 
-    this.logger.log(
-      `Child ${childId} linked to subscription >>>> ${subscription._id}`,
-    );
-
-    // subscription.child = new Types.ObjectId(childId);
-    // await subscription.save({ session});
-
-    this.logger.log(
-      `Child ${childId} added to subscription ${subscription._id} successfully`,
-    );  
     return subscription;
-
   }
 
   async canAddChild(userId: string): Promise<boolean> {
@@ -359,7 +266,7 @@ export class SubscriptionService {
       user: userId,
       status: SubscriptionStatus.ACTIVE,
       isActive: true,
-      child: null, 
+      child: null,
     });
 
     if (!subscription) {
@@ -376,15 +283,18 @@ export class SubscriptionService {
   async getActiveSubscription(
     currentUser: User,
   ): Promise<SubscriptionDocument | null> {
-    return this.subscriptionModel.findOne({
-      user: currentUser._id,
-      status: SubscriptionStatus.ACTIVE,
-      isActive: true,
-      endDate: { $gt: new Date() },
-    }).populate('user');
+    return this.subscriptionModel
+      .findOne({
+        user: currentUser._id,
+        status: SubscriptionStatus.ACTIVE,
+        isActive: true,
+        endDate: { $gt: new Date() },
+      })
+      .populate('user')
+      .populate('child');
   }
 
-  async getSubscriptionStatus(currentUser: User ) {
+  async getSubscriptionStatus(currentUser: User) {
     const subscription = await this.getActiveSubscription(currentUser);
     if (!subscription) {
       return {

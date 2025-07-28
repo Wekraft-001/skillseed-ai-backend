@@ -9,6 +9,7 @@ import {
   Query,
   Res,
   HttpException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/modules/auth/guards';
 import { SubscriptionService } from './subscription.service';
@@ -23,8 +24,8 @@ import { User } from 'src/modules/schemas';
 import { CreateSubscriptionDto } from 'src/common/interfaces';
 import { VerifyPaymentDto } from 'src/common/interfaces/verify-payment.dto';
 import { Response } from 'express';
+import { Subscription } from 'src/modules/schemas/subscription.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Subscription } from 'rxjs';
 import { Model } from 'mongoose';
 import { SubscriptionDocument } from 'src/modules/schemas/subscription.schema';
 import { PaymentService } from 'src/payment/payment.service';
@@ -32,6 +33,8 @@ import { RolesGuard } from 'src/modules/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { CreateStudentDto } from 'src/modules/auth/dtos';
 import { create } from 'domain';
+import { ParentDashboardService } from 'src/modules/dashboard/parents/services/dashboard.service';
+import { use } from 'passport';
 
 @Controller('subscriptions')
 @UseGuards(JwtAuthGuard)
@@ -41,6 +44,7 @@ export class SubscriptionController {
     @InjectModel(Subscription.name)
     private subscriptionModel: Model<SubscriptionDocument>,
     private paymentService: PaymentService,
+    private parentDashboardService: ParentDashboardService,
   ) {}
 
   @Post('subscribe')
@@ -66,22 +70,51 @@ export class SubscriptionController {
   }
 
   @Get('success')
-  async handlePaymentSuccess(@Query() query: any, @Res() res: Response, @CurrentUser() user: User, createStudentDto: CreateStudentDto) {
-    const { transaction_id, tx_ref, childTempId } = query;
-    const isVerified = await this.paymentService.verifyPayment(transaction_id, createStudentDto, user);
+  async handlePaymentSuccess(
+    @Query() query: any,
+    @Res() res: Response,
+    @CurrentUser() user: User,
+  ) {
+    const { transaction_id, tx_ref } = query;
+
+    const isVerified = await this.paymentService.verifyPayment(transaction_id);
 
     if (!isVerified) {
       return res.redirect('/subscription/failed');
     }
 
-      const subscription = await this.subscriptionModel.findOneAndUpdate(
-      { transactionRef: tx_ref},
+    const subscription = await this.subscriptionModel.findOneAndUpdate(
+      { transactionRef: tx_ref },
       {
         status: SubscriptionStatus.ACTIVE,
         paymentStatus: PaymentStatus.COMPLETED,
         flutterwaveTransactionId: transaction_id,
         isActive: true,
       },
+      { new: true },
+    );
+
+    
+
+    if (!subscription) {
+      throw new NotFoundException('Subscription not found');
+
+    }
+
+    const tempStudentData = this.parentDashboardService.getTempStudentData(
+      subscription.childTempId,
+    );
+
+    console.log(`>>>>>>>>>>>>>>>>>>>>>>>>>${tempStudentData}`);
+
+
+    if (!tempStudentData) {
+      throw new NotFoundException('Temporary student data not found');
+    }
+
+    await this.parentDashboardService.registerFinalStudent(
+      tempStudentData,
+      user,
     );
 
     return res.status(200).json({
@@ -90,41 +123,26 @@ export class SubscriptionController {
       transactionId: transaction_id,
       transaction_ref: tx_ref,
       subscriptionStatus: 'ACTIVE',
-      childTempId: subscription.childTempId
+      childTempId: subscription.childTempId,
     });
   }
 
   @Get('all-active-subsc')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.PARENT, UserRole.SCHOOL_ADMIN, UserRole.SUPER_ADMIN)
-  async getAllActiveSubscriptions(@CurrentUser() user: User){ 
+  async getAllActiveSubscriptions(@CurrentUser() user: User) {
     if (user.role !== UserRole.PARENT) {
-      throw new BadRequestException('Only parents or school admins can view subscriptions');
+      throw new BadRequestException(
+        'Only parents or school admins can view subscriptions',
+      );
     }
 
     return this.subscriptionService.getActiveSubscription(user);
-    
   }
 
-  // @Post('verify-payment')
-  // async verifyPayment(
-  //   @Body() verifyPaymentDto: VerifyPaymentDto,
-  //   @Request() req,
-  // ) {
-  //   const user = req.user;
-
-  //   if (user.role !== UserRole.PARENT) {
-  //     throw new BadRequestException('Only parents can verify payments');
-  //   }
-
-  //   return this.subscriptionService.verifyPayment(
-  //     verifyPaymentDto.transactionRef,
-  //   );
-  // }
 
   @Get('status')
   async getSubscriptionStatus(@CurrentUser() user: User) {
-
     if (user.role !== UserRole.PARENT) {
       throw new BadRequestException(
         'Only parents can check subscription status',

@@ -12,6 +12,7 @@ import {
   CustomerDataDto,
   DashboardResponse,
   DashboardSummary,
+  SubscriptionStatus,
   UserRole,
 } from 'src/common/interfaces';
 import { School, User } from '../../../schemas/index';
@@ -112,7 +113,7 @@ export class ParentDashboardService {
       throw new NotFoundException('Temporary student data not found.');
     }
 
-    delete this.tempStudentsStorage[childTempId];
+    // delete this.tempStudentsStorage[childTempId];
 
     const session = await this.userModel.db.startSession();
     session.startTransaction();
@@ -145,55 +146,79 @@ export class ParentDashboardService {
         );
       }
 
-      const newUser = new this.userModel({
-        // firstName: tempStudentData.firstName,
-        // lastName: tempStudentData.lastName,
-        // age: tempStudentData.age,
-        // grade: tempStudentData.grade,
-        // imageUrl: tempStudentData.imageUrl,
-        // role: UserRole.STUDENT,
-        // password: tempStudentData.password,
-        ...tempStudentData,
-        createdBy: {
-          name: currentUser.firstName + ' ' + currentUser.lastName,
-          email: currentUser.email,
-          role: currentUser.role,
-        },
-        // childTempId: tempStudentData.childTempId,
-      });
-
-      await newUser.save({ session });
-
-      const addedToSubscription =
-        await this.subscriptionService.addChildToSubscription(
-          currentUser._id.toString(),
-          newUser._id.toString(),
-          tempStudentData.childTempId,
-          session,
-        );
-
-      if (!addedToSubscription) {
-        throw new BadRequestException('Failed to add child to subscription');
-      }
-
       await this.subscriptionService.incrementChildrenCount(currentUser);
 
       await session.commitTransaction();
       session.endSession();
 
-      const populatedStudent = await this.userModel
-        .findById(newUser._id)
-        .populate('createdBy');
-
       return {
-        student: populatedStudent,
-        message: 'Student registered successfully after payment.',
+        message: 'Payment link generated successfully',
+        paymentLink: createChildPayment.authorizationUrl,
+        childTempId: tempStudentData.childTempId,
       };
     } catch (error) {
       await session.abortTransaction();
       session.endSession();
       throw error;
     }
+  }
+
+  getTempStudentData(childTempId: string): TempStudentDataDto | undefined {
+    return this.tempStudentsStorage[childTempId];
+  }
+
+  deleteTempStudentData(childTempId: string): void {
+    delete this.tempStudentsStorage[childTempId];
+  }
+
+  async registerFinalStudent(
+    tempStudentData: TempStudentDataDto,
+    user: User,
+    // subscription: SubscriptionDocument,
+  ) {
+    const subscription = await this.subscriptionModel.findOne(
+      {
+        user: user._id.toString(),
+        childTempId: tempStudentData.childTempId,
+        status: SubscriptionStatus.ACTIVE,
+        isActive: true,
+        child: null,
+      },
+      // {
+      //   $set: { child: null }, 
+      // },
+      // {
+      //   new: true,
+      // },
+    );
+
+    if (!subscription) {
+      throw new BadRequestException('Subscription not found or already linked');
+    }
+
+  
+
+    const student = new this.userModel({
+      firstName: tempStudentData.firstName,
+      lastName: tempStudentData.lastName,
+      grade: tempStudentData.grade,
+      age: tempStudentData.age,
+      password: tempStudentData.password,
+      role: UserRole.STUDENT,
+      imageUrl: tempStudentData.imageUrl,
+      parent: user._id,
+      subscription: subscription._id,
+    });
+
+    subscription.child = new Types.ObjectId(student._id.toString());
+
+    if(subscription.child) {
+      this.logger.log(
+        `Child ${student._id} linked to subscription >>>> ${subscription._id}`,)
+    }
+
+    await student.save();
+    return student;
   }
 
   async getStudentsForUser(user: User) {

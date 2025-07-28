@@ -24,7 +24,7 @@ export class Subscription {
   @Prop({ default: null })
   flutterwaveTransactionId: string;
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null })
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
   child: Types.ObjectId;
 
   @Prop()

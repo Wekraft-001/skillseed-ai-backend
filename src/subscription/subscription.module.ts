@@ -10,6 +10,7 @@ import { PaymentModule } from 'src/payment/payment.module';
 import { LoggerModule } from 'src/common/logger/logger.module';
 import { User, UserSchema } from 'src/modules/schemas';
 import { HttpModule } from '@nestjs/axios';
+import { ParentDashboardModule } from 'src/modules/dashboard/parents/module/dashboard.module';
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { HttpModule } from '@nestjs/axios';
     ]),
     PaymentModule,
     LoggerModule,
-    HttpModule
+    HttpModule,
+    ParentDashboardModule
   ],
   controllers: [SubscriptionController],
   providers: [SubscriptionService],

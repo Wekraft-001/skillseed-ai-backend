@@ -10,19 +10,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosResponse } from 'axios';
 import { LoggerService } from 'src/common/logger/logger.service';
-import {
-  CardDetails,
-  CardPaymentRequest,
-  CreateSchoolDto,
-  CreateSubscriptionDto,
-  CustomerDataDto,
-  FlutterwaveCharge,
-  FlutterwaveCustomer,
-  FlutterwavePaymentInitiationResponse,
-  FlutterwavePaymentMethod,
-  PaymentRequest,
-  PaymentResponse,
-} from 'src/common/interfaces';
+import { FlutterwavePaymentInitiationResponse } from 'src/common/interfaces';
 import * as crypto from 'crypto';
 import { v4 as uuid } from 'uuid';
 import { InjectModel } from '@nestjs/mongoose';
@@ -185,13 +173,9 @@ export class PaymentService {
     );
   }
 
-  async verifyPayment(
-    childTempId: string,
-    subscriptionData: any,
-    currentUser: User,
-  ): Promise<any> {
+  async verifyPayment(transactionId: string): Promise<any> {
     try {
-      const url = `${this.flutterwaveUrl}/transactions/${subscriptionData.flutterwaveTransactionId}/verify`;
+      const url = `${this.flutterwaveUrl}/transactions/${transactionId}/verify`;
 
       this.logger.log(`Verifying payment at: ${url}`);
 
@@ -207,28 +191,12 @@ export class PaymentService {
         throw new BadRequestException('Payment verification failed');
       }
 
-      this.logger.log(
-        `Payment verified successfully: ${subscriptionData.flutterwaveTransactionId}`,
+      this.logger.log(`Payment verified successfully: ${transactionId}`);
+
+      return (
+        response.data.status === 'success' &&
+        response.data.data.status === 'successful'
       );
-
-      const tempStudentData = this.tempStudentsStore[childTempId];
-      if (!tempStudentData) {
-        throw new NotFoundException('Temporary student data not found');
-      }
-
-      const registrationCompleted =
-        await this.parentDashboardService.completeStudentRegistration(
-          subscriptionData.childTempId,
-          subscriptionData,
-          currentUser,
-        );
-      if (!registrationCompleted) {
-        this.logger.error(
-          'Failed to complete student registration after payment verification',
-        );
-      }
-
-      return { message: 'Payment verified and student registered' };
     } catch (error) {
       this.logger.error(
         'Error verifying payment',

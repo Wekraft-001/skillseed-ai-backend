@@ -11,6 +11,7 @@ import { LoggerModule } from 'src/common/logger/logger.module';
 import { User, UserSchema } from 'src/modules/schemas';
 import { HttpModule } from '@nestjs/axios';
 import { ParentDashboardModule } from 'src/modules/dashboard/parents/module/dashboard.module';
+import { SubscriptionMonitorService } from './subscription-monitor.service';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { ParentDashboardModule } from 'src/modules/dashboard/parents/module/dash
     ParentDashboardModule
   ],
   controllers: [SubscriptionController],
-  providers: [SubscriptionService],
+  providers: [SubscriptionService, SubscriptionMonitorService],
   exports: [SubscriptionService],
 })
 export class SubscriptionModule {}

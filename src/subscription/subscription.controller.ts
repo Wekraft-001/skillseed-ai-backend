@@ -10,11 +10,14 @@ import {
   Res,
   HttpException,
   NotFoundException,
+  Req,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/modules/auth/guards';
 import { SubscriptionService } from './subscription.service';
 import {
   CardPaymentRequest,
+  PaymentMethod,
   PaymentStatus,
   SubscriptionStatus,
   UserRole,
@@ -35,6 +38,7 @@ import { CreateStudentDto } from 'src/modules/auth/dtos';
 import { create } from 'domain';
 import { ParentDashboardService } from 'src/modules/dashboard/parents/services/dashboard.service';
 import { use } from 'passport';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('subscriptions')
 @UseGuards(JwtAuthGuard)
@@ -45,29 +49,8 @@ export class SubscriptionController {
     private subscriptionModel: Model<SubscriptionDocument>,
     private paymentService: PaymentService,
     private parentDashboardService: ParentDashboardService,
+    private configService: ConfigService,
   ) {}
-
-  @Post('subscribe')
-  async createSubscription(
-    @Body() createSubscriptionDto: CreateSubscriptionDto,
-    @CurrentUser() user: User,
-  ) {
-    if (user.role !== UserRole.PARENT) {
-      throw new BadRequestException('Only parents can create subscriptions');
-    }
-
-    const result =
-      await this.subscriptionService.createSubscriptionWithCardPayment(
-        user._id.toString(),
-        createSubscriptionDto,
-      );
-
-    return {
-      message: 'Subscription created. Please complete payment.',
-      authorizationUrl: result.authorizationUrl,
-      reference: result.reference,
-    };
-  }
 
   @Get('success')
   async handlePaymentSuccess(
@@ -83,30 +66,41 @@ export class SubscriptionController {
       return res.redirect('/subscription/failed');
     }
 
+    console.error(
+      `Webhook callback tx_ref: ${tx_ref}, transaction_id: ${transaction_id}`,
+    );
+
+    const usedPaymentMethod =
+      PaymentMethod.CREDIT_CARD || PaymentMethod.MOBILE_MONEY;
+
     const subscription = await this.subscriptionModel.findOneAndUpdate(
-      { transactionRef: tx_ref },
+      {
+        use: user._id,
+        transactionRef: tx_ref,
+        paymentStatus: PaymentStatus.PENDING,
+      },
       {
         status: SubscriptionStatus.ACTIVE,
         paymentStatus: PaymentStatus.COMPLETED,
         flutterwaveTransactionId: transaction_id,
+        payment_options: usedPaymentMethod,
         isActive: true,
       },
       { new: true },
     );
 
-    
-
     if (!subscription) {
       throw new NotFoundException('Subscription not found');
-
     }
 
-    const tempStudentData = this.parentDashboardService.getTempStudentData(
-      subscription.childTempId,
+    const tempStudentData =
+      await this.parentDashboardService.getTempStudentData(
+        subscription.childTempId,
+      );
+
+    console.log(
+      `>>>>>>>>>>>>>>>>>>>>>>>>>${tempStudentData} the child temp ID ${subscription}`,
     );
-
-    console.log(`>>>>>>>>>>>>>>>>>>>>>>>>>${tempStudentData}`);
-
 
     if (!tempStudentData) {
       throw new NotFoundException('Temporary student data not found');
@@ -119,7 +113,7 @@ export class SubscriptionController {
 
     return res.status(200).json({
       message:
-        'Subscription payment successful. Your subscription is now active.',
+        'Subscription payment successful. Your subscription is now active and your student is registered good job',
       transactionId: transaction_id,
       transaction_ref: tx_ref,
       subscriptionStatus: 'ACTIVE',
@@ -141,26 +135,4 @@ export class SubscriptionController {
   }
 
 
-  @Get('status')
-  async getSubscriptionStatus(@CurrentUser() user: User) {
-    if (user.role !== UserRole.PARENT) {
-      throw new BadRequestException(
-        'Only parents can check subscription status',
-      );
-    }
-
-    return this.subscriptionService.getSubscriptionStatus(user);
-  }
-
-  @Get('can-add-child')
-  async canAddChild(@Request() req) {
-    const user = req.user;
-
-    if (user.role !== UserRole.PARENT) {
-      throw new BadRequestException('Only parents can check this');
-    }
-
-    const canAdd = await this.subscriptionService.canAddChild(user._id);
-    return { canAddChild: canAdd };
-  }
 }

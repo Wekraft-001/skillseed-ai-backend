@@ -9,6 +9,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
 } from '@nestjs/common';
 import { ParentDashboardService } from '../services/dashboard.service';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
@@ -92,18 +93,19 @@ export class ParentDashboardController {
     );
   }
 
-  @Post('complete-student-registration')
+  @Post('complete-student-registration/:childTempId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.PARENT)
   async completeStudentRegistration(
-    @Body()
-    body: { childTempId: string; subscriptionData: CreateSubscriptionDto },
+    @Param('childTempId') childTempId: string,
+    @Body() subscriptionData: CreateSubscriptionDto,
     @CurrentUser() user: User,
   ) {
     return this.parentDashboardService.completeStudentRegistration(
-      body.childTempId,
-      body.subscriptionData,
+      childTempId,
+      subscriptionData,
       user,
+      subscriptionData.payment_options
     );
   }
 

@@ -155,6 +155,21 @@ export class AuthController {
   //   return this.parentDashboardService.registerStudentByParent(createStudentDto, user, image);
   // }
 
+  @Post('register')
+  @ApiTags('Authentication')
+  @ApiOperation({ summary: 'Register a new user' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'User registered successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid input data',
+  })
+  async registerAdmin0rParent(@Body() userDto: CreateAdminOrParentDto){
+    return this.authService.registerAdminOrParent(userDto);
+  }
+
   
   @Post('signin')
   @ApiTags('Authentication')

@@ -25,7 +25,7 @@ export class User extends Document {
     default: UserRole.STUDENT,
     index: true
   })
-  role: UserRole;
+  role: UserRole;  
 
   @Prop({ required: false, index: true })
   image?: string;
@@ -54,7 +54,7 @@ export class User extends Document {
   @Prop()
   phoneNumber: number;
 
-  @Prop({type: Types.ObjectId, ref: 'User', default: null, index: true})
+  @Prop({type: Types.ObjectId, ref: 'User', index: true})
   createdBy?: Types.ObjectId;
 
   @Prop({type: Types.ObjectId, ref: 'CareerQuiz', index: true})
@@ -68,6 +68,9 @@ export class User extends Document {
 
   @Prop({type: Types.ObjectId, ref: 'ProjectShowCase', index: true})
   showcases: Types.ObjectId[];
+
+  @Prop({ type: Types.ObjectId, ref: 'Subscription', index: true })
+  subscription?: Types.ObjectId;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

@@ -8,6 +8,7 @@ import { Subscription } from 'rxjs';
 import { SubscriptionSchema } from 'src/modules/schemas/subscription.schema';
 import { SubscriptionModule } from '../../../../subscription/subscription.module';
 import { PaymentModule } from 'src/payment/payment.module';
+import { TempStudent, TempStudentSchema } from 'src/modules/schemas/temp-student.schema';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { PaymentModule } from 'src/payment/payment.module';
       { name: School.name, schema: SchoolSchema },
       { name: User.name, schema: UserSchema },
       { name: Subscription.name, schema: SubscriptionSchema },
+      { name: TempStudent.name, schema: TempStudentSchema},
     ]),
     LoggerModule,
     forwardRef(() => SubscriptionModule),

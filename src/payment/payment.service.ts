@@ -10,7 +10,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosResponse } from 'axios';
 import { LoggerService } from 'src/common/logger/logger.service';
-import { FlutterwavePaymentInitiationResponse } from 'src/common/interfaces';
+import {
+  FlutterwavePaymentInitiationResponse,
+  SubscriptionStatus,
+} from 'src/common/interfaces';
 import * as crypto from 'crypto';
 import { v4 as uuid } from 'uuid';
 import { InjectModel } from '@nestjs/mongoose';
@@ -51,7 +54,7 @@ export class PaymentService {
         tx_ref: customerData.tx_ref,
         amount: customerData.amount || 50,
         currency: customerData.currency || 'USD',
-        payment_options: 'card',
+        payment_options: customerData.payment_options || 'card',
         customer: {
           email: customerData.email,
           name: `${customerData.name.first} ${customerData.name.last}`,
@@ -166,13 +169,6 @@ export class PaymentService {
     }
   }
 
-  async purchaseChild(subscriptionId: string, user: User) {
-    const currentSubcription = await this.subscriptionModel.findById(
-      subscriptionId,
-      // child: user._id.toString(),
-    );
-  }
-
   async verifyPayment(transactionId: string): Promise<any> {
     try {
       const url = `${this.flutterwaveUrl}/transactions/${transactionId}/verify`;
@@ -204,6 +200,54 @@ export class PaymentService {
       );
       throw new BadRequestException('Payment verification failed');
     }
+  }
+
+  async processWebhook(event: any) {
+    this.logger.debug(
+      `📥 Received Flutterwave Webhook: ${JSON.stringify(event)}`,
+    );
+
+    const { event: eventType, data } = event;
+
+    if (eventType === 'charge.completed') {
+      const txRef = data.tx_ref;
+      const status = data.status;
+
+      if (status === 'successful') {
+        this.logger.log(`✅ Payment successful for tx_ref: ${txRef}`);
+
+        const subscription = await this.findSubscriptionByTxRef(txRef);
+        if (subscription) {
+
+          const { startDate, endDate } = this.calculateExpiration();
+
+          subscription.status = SubscriptionStatus.ACTIVE;
+          subscription.startDate = startDate;
+          subscription.endDate = endDate;
+          
+          await subscription.save();
+        } else {
+          this.logger.warn(`⚠️ No subscription found for tx_ref ${txRef}`);
+        }
+      } else {
+        this.logger.warn(`❌ Payment failed for tx_ref: ${txRef}`);
+      }
+    } else {
+      this.logger.log(`ℹ️ Ignored event type: ${eventType}`);
+    }
+  }
+
+  async findSubscriptionByTxRef(txRef: string) {
+    return await this.subscriptionModel.findOne({ txRef });
+  }
+
+  calculateExpiration(): { startDate: Date; endDate: Date } {
+    const startDate = new Date();
+    const endDate = new Date(startDate); 
+
+    endDate.setMonth(endDate.getMonth() + 1); 
+
+    return { startDate, endDate };
   }
 
   async getTransactionDetails(transactionId: string): Promise<any> {

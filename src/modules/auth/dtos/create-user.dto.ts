@@ -82,6 +82,10 @@ export class CreateStudentDto {
 }
 
 export class TempStudentDataDto {
+  @IsOptional()
+  @IsString()
+  childTempId?: string;
+
   @IsString()
   firstName: string;
 
@@ -101,9 +105,7 @@ export class TempStudentDataDto {
   // @IsString()
   imageUrl: string;
 
-  @IsOptional()
-  @IsString()
-  childTempId?: string;
+  paymentUrl?: string;
 
   @IsString()
   @MinLength(6)

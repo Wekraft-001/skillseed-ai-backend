@@ -1,6 +1,6 @@
 import { Type } from "class-transformer";
 import { IsString, IsNotEmpty, IsNumber, ValidateNested, IsOptional } from "class-validator";
-import { CardDetails, CustomerDataDto } from "./card.interface";
+import { PaymentMethod } from "./payment-methods-interface.enum";
 
 export class CreateSubscriptionDto {
 
@@ -12,18 +12,15 @@ export class CreateSubscriptionDto {
   @IsString()
   currency: string;
 
+  @IsOptional()
   @IsString()
   childTempId?: string;
-  // @ValidateNested()
-  // @Type(() => CustomerDataDto)
-  // customer: CustomerDataDto;
 
-  // @ValidateNested()
-  // @Type(() => CardDetails)
-  // card: CardDetails;
-
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   redirect_url: string;
+
+  @IsString()
+  payment_options: PaymentMethod;
 
 }

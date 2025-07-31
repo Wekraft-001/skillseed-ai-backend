@@ -218,13 +218,12 @@ export class PaymentService {
 
         const subscription = await this.findSubscriptionByTxRef(txRef);
         if (subscription) {
-
           const { startDate, endDate } = this.calculateExpiration();
 
           subscription.status = SubscriptionStatus.ACTIVE;
           subscription.startDate = startDate;
           subscription.endDate = endDate;
-          
+
           await subscription.save();
         } else {
           this.logger.warn(`⚠️ No subscription found for tx_ref ${txRef}`);
@@ -243,9 +242,9 @@ export class PaymentService {
 
   calculateExpiration(): { startDate: Date; endDate: Date } {
     const startDate = new Date();
-    const endDate = new Date(startDate); 
+    const endDate = new Date(startDate);
 
-    endDate.setMonth(endDate.getMonth() + 1); 
+    endDate.setMonth(endDate.getMonth() + 1);
 
     return { startDate, endDate };
   }

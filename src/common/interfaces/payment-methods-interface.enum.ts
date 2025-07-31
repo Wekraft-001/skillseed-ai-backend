@@ -1,7 +1,6 @@
 export enum PaymentMethod {
-    CREDIT_CARD = 'credit-card',
-    PAYPAL = 'paypal',
-    MOBILE_MONEY = 'mobile-money',
-    BANK_TRANSFER = 'bank-transfer'
+    CREDIT_CARD = 'card',
+    MOBILE_MONEY = 'mobilemoneyrwanda',
+    // BANK_TRANSFER = 'bank-transfer'
 
 }

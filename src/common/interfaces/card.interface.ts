@@ -81,17 +81,18 @@ export class CustomerDataDto {
   @IsEmail()
   email: string;
 
-  @ValidateNested()
-  @Type(() => CustomerNameDto)
-  name: CustomerNameDto;
+  @IsString()
+  name: string;
 
-  @ValidateNested()
-  @Type(() => CustomerPhoneDto)
+  @IsString()
+  currenty: string;
+
+ @IsString()
   phoneNumber: CustomerPhoneDto;
 
-  @ValidateNested()
-  @Type(() => CustomerAddressDto)
-  address: CustomerAddressDto;
+  // @ValidateNested()
+  // @Type(() => CustomerAddressDto)
+  // address: CustomerAddressDto;
 }
 
 

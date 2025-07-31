@@ -12,7 +12,9 @@ export class UserService {
   async findAllUsers(): Promise<User[]> {
      return this.userModel
       .find({deletedAt: null})
-      .populate('school', 'createdBy')
+      .populate('school')
+      .populate('createdBy')
+      .populate('subscription')
       .lean()
       .exec();
   }

@@ -5,14 +5,13 @@ import { School } from '../school.schema';
 
 export type UserDocument = User &
   Document & {
-    _id: Types.ObjectId;
+    // _id: Types.ObjectId;
     school: Types.ObjectId;
     createdBy: Types.ObjectId;
   };
 
 @Schema({ timestamps: true, collection: 'users', autoIndex: true })
 export class User extends Document {
-  // _id: Types.ObjectId;
 
   @Prop({ required: true, index: true })
   firstName: string;
@@ -26,7 +25,7 @@ export class User extends Document {
     default: UserRole.STUDENT,
     index: true
   })
-  role: UserRole;
+  role: UserRole;  
 
   @Prop({ required: false, index: true })
   image?: string;
@@ -55,7 +54,7 @@ export class User extends Document {
   @Prop()
   phoneNumber: number;
 
-  @Prop({type: Types.ObjectId, ref: 'User', default: null, index: true})
+  @Prop({type: Types.ObjectId, ref: 'User', index: true})
   createdBy?: Types.ObjectId;
 
   @Prop({type: Types.ObjectId, ref: 'CareerQuiz', index: true})
@@ -69,6 +68,9 @@ export class User extends Document {
 
   @Prop({type: Types.ObjectId, ref: 'ProjectShowCase', index: true})
   showcases: Types.ObjectId[];
+
+  @Prop({ type: Types.ObjectId, ref: 'Subscription', index: true })
+  subscription?: Types.ObjectId;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

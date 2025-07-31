@@ -3,6 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
+import { ScheduleModule } from '@nestjs/schedule';
+
 import {
   Badge,
   EducationalContent,
@@ -60,6 +62,7 @@ import { ParentDashboardModule } from './modules/dashboard/parents/module/dashbo
     TransactionModule,
     MentorModule,
     PaymentModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [AppService],

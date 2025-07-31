@@ -21,6 +21,8 @@ import { LoggerService } from 'src/common/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { v4 as uuidv4 } from 'uuid';
 import { child } from 'winston';
+import { json } from 'stream/consumers';
+import { CurrentUser } from 'src/common/decorators';
 
 @Injectable()
 export class SubscriptionService {
@@ -43,44 +45,21 @@ export class SubscriptionService {
         throw new BadRequestException('User not found');
       }
 
-      const pendingSubscription = await this.subscriptionModel.findOne({
-        user: userId,
-        status: SubscriptionStatus.PENDING,
-        paymentStatus: PaymentStatus.PENDING,
-      });
-
-      const childTempId = `student-${uuidv4()}`;
       const transactionRef = `subscription-${uuidv4()}`;
-      this.logger.log(
-        `Generated transactionRef: ${transactionRef} ********* Generated childTempId: ${childTempId}`,
-      );
 
       const customerData = {
         amount: subscriptionData.amount,
         currency: subscriptionData.currency || 'RWF',
-        redirect_url: subscriptionData.redirect_url,
+        redirect_url: 'http://localhost:3000/api/subscriptions/success',
         tx_ref: transactionRef,
-        name: {
-          first: user.firstName || '',
-          middle: '',
-          last: user.lastName || '',
-        },
-        phone: {
-          country_code: '250',
-          number: user.phoneNumber.toString(),
-        },
+        name: `${user.firstName} ${user.lastName}`,
+        phonenumber: `+250${user.phoneNumber}`,
         email: user.email,
-        address: {
-          city: 'Kigali',
-          country: 'USD',
-          line1: '',
-          line2: '',
-          postal_code: '',
-          state: 'Kigali',
-        },
       };
 
-      this.logger.log(`Creating customer for user ${userId}`);
+      this.logger.log(
+        `Creating customer for user ${userId} with customer data: ${JSON.stringify(customerData, null, 2)}  `,
+      );
 
       const hostedPayment =
         await this.paymentService.createFlutterwaveCustomer(customerData);
@@ -105,25 +84,88 @@ export class SubscriptionService {
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         childrenCount: 0,
         child: null,
-        childTempId,
+        childTempId: subscriptionData.childTempId,
         maxChildren: 30,
       });
 
       await subscription.save();
       this.logger.log(
-        `Subscription created for user ${userId}: ${transactionRef}`,
+        `Subscription created for user ${userId}: check subscription details>>> ${subscription}`,
       );
 
       return {
         subscription,
         authorizationUrl: hostedLink,
         reference: transactionRef,
-        childTempId,
+        // childTempId,
       };
     } catch (error) {
       this.logger.error('Error creating subscription', error);
       throw new BadRequestException(
         `Failed to create subscription: ${error.message}`,
+      );
+    }
+  }
+
+  async createSubscriptionWithMobileMoney(
+    userId: string,
+    subscriptionData: CreateSubscriptionDto,
+  ) {
+    try {
+      const user = await this.userModel.findById(userId);
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      const transactionRef = `subscription-${uuidv4()}`;
+
+      const customerData = {
+        amount: subscriptionData.amount,
+        currency: subscriptionData.currency,
+        tx_ref: transactionRef,
+        name: `${user.firstName} ${user.lastName}`,
+        phonenumber: `+250${user.phoneNumber}`,
+        email: user.email,
+        payment_options: 'mobilemoneyrwanda',
+      };
+
+      const hostedPayment =
+        await this.paymentService.createFlutterwaveCustomer(customerData);
+      const hostedLink = hostedPayment.data?.link;
+      if (!hostedLink) {
+        throw new BadRequestException('Failed to generate payment link');
+      }
+
+      const subscription = new this.subscriptionModel({
+        user: userId,
+        transactionRef,
+        status: SubscriptionStatus.PENDING,
+        isActive: false,
+        amount: subscriptionData.amount,
+        currency: subscriptionData.currency,
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        paymentStatus: PaymentStatus.PENDING,
+        childrenCount: 0,
+        child: null,
+        childTempId: subscriptionData.childTempId,
+        maxChildren: 30,
+        payment_options: subscriptionData.payment_options
+      });
+
+      await subscription.save();
+
+      this.logger.debug(`Created and saved subscription----- ${subscription}`);
+
+      return {
+        subscription,
+        authorizationUrl: hostedLink,
+        reference: transactionRef,
+      };
+    } catch (error) {
+      this.logger.error('Error creating mobile money subscription', error);
+      throw new BadRequestException(
+        `Failed to create mobile money subscription: ${error.message}`,
       );
     }
   }
@@ -149,7 +191,7 @@ export class SubscriptionService {
         name: `${user.firstName || ''} ${user.lastName || ''}`,
         phonenumber: `+${user.phoneNumber.toString()}`,
         frequency: 'once',
-        is_permanent: false, 
+        is_permanent: false,
       };
 
       this.logger.log(`Creating virtual account for user ${userId}`);
@@ -169,10 +211,11 @@ export class SubscriptionService {
         amount: subscriptionData.amount,
         currency: subscriptionData.currency,
         startDate: new Date(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        endDate: new Date(Date.now() + 1 * 60 * 1000), // 1 minute from now
+        // endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         childrenCount: 0,
         maxChildren: 30,
-        child: null
+        child: null,
       });
 
       await subscription.save();
@@ -237,114 +280,41 @@ export class SubscriptionService {
     return subscription;
   }
 
-  async verifyPayment(transactionRef: string, transactionId?: string) {
-    try {
-      this.logger.log(
-        `🔍 Verifying payment for txRef: ${transactionRef}, transactionId: ${transactionId}`,
-      );
-
-      const subscription = await this.subscriptionModel.findOne({
-        transactionRef,
-      });
-      if (!subscription) {
-        this.logger.error(
-          `❌ Subscription not found for txRef: ${transactionRef}`,
-        );
-
-        const allSubscriptions = await this.subscriptionModel
-          .find({
-            transactionRef: { $regex: transactionRef.split('-')[0] },
-          })
-          .select('transactionRef status user createdAt');
-
-        this.logger.log(
-          `📋 Found ${allSubscriptions.length} subscriptions with similar txRef prefix:`,
-        );
-        allSubscriptions.forEach((sub) => {
-          this.logger.log(
-            `  - ${sub.transactionRef} | Status: ${sub.status} | User: ${sub.user} `,
-          );
-        });
-
-        throw new BadRequestException('Subscription not found');
-      }
-
-      this.logger.log(
-        `✅ Found subscription: ${subscription._id} | Status: ${subscription.status} | User: ${subscription.user}`,
-      );
-      //checking if subsc. already active
-      if (subscription.status === SubscriptionStatus.ACTIVE) {
-        this.logger.log(
-          `⚠️  Subscription ${subscription._id} already active, skipping verification`,
-        );
-        return {
-          subscription,
-          message: 'Payment already verified',
-          alreadyProcessed: true,
-        };
-      }
-
-      if (!subscription.flutterwaveTransactionId) {
-        throw new BadRequestException('No payment transaction found');
-      }
-
-      this.logger.log(`🔄 Verifying payment with Flutterwave...`);
-      const verificationResponse = await this.paymentService.verifyPayment(
-        subscription.flutterwaveTransactionId,
-      );
-
-      this.logger.log(`📊 Flutterwave response status: ${verificationResponse?.status}`);
-
-      if (
-        verificationResponse.status === 'success' &&
-        verificationResponse.data.status === 'successful'
-      ) {
-        subscription.status = SubscriptionStatus.ACTIVE;
-        subscription.isActive = true;
-        await subscription.save();
-
-        this.logger.log(`Subscription activated: ${transactionRef}`);
-        return { success: true, subscription };
-      } else {
-        this.logger.warn(`Payment verification failed for ${transactionRef}`);
-        return { success: false, message: 'Payment verification failed' };
-      }
-    } catch (error) {
-      this.logger.error('Error verifying payment', error);
-      throw error;
-    }
-  }
-
-  async incrementChildrenCount(userId: string): Promise<void> {
-    const subscription = await this.getActiveSubscription(userId);
-    if (subscription) {
-      subscription.childrenCount += 1;
-      await subscription.save();
-    }
-  }
+  // async incrementChildrenCount(currentUser: User, subscriptionData: CreateSubscriptionDto): Promise<void> {
+  //   const subscription = await this.getActiveSubscription(currentUser);
+  //   if (subscription) {
+  //     subscriptionData.childrenCount += 1;
+  //     await subscription.save();
+  //   }
+  // }
 
   async addChildToSubscription(
-    parentId: string,
-    childId: string,
+    // parentId: string,
+    currentUser: User,
+    // childId: string,
     childTempId: string,
     session?: ClientSession,
   ) {
-
     const subscription = await this.subscriptionModel.findOneAndUpdate(
       {
-        user: parentId,
+        user: currentUser._id.toString(),
         childTempId,
         status: SubscriptionStatus.ACTIVE,
         isActive: true,
         child: null,
       },
       {
-        $set: { child: new Types.ObjectId(childId)},
+        $set: { child: new Types.ObjectId(childTempId) },
       },
       {
         new: true,
         session,
       },
+    );
+
+    this.logger.log(
+      'Found subscription: >>>>>',
+      JSON.stringify(subscription, null, 2),
     );
 
     if (!subscription) {
@@ -353,69 +323,43 @@ export class SubscriptionService {
       );
     }
 
-    this.logger.log(
-      `Child ${childId} linked to subscription >>>> ${subscription._id}`,
-    );
-
-    // subscription.child = new Types.ObjectId(childId);
-    // await subscription.save({ session});
-
-    this.logger.log(
-      `Child ${childId} added to subscription ${subscription._id} successfully`,
-    );  
     return subscription;
-
   }
 
-  async canAddChild(userId: string): Promise<boolean> {
-    const subscription = await this.subscriptionModel.findOne({
-      user: userId,
-      status: SubscriptionStatus.ACTIVE,
-      isActive: true,
-      child: null, 
-    });
+  // async canAddChild(userId: string): Promise<boolean> {
+  //   const subscription = await this.subscriptionModel.findOne({
+  //     user: userId,
+  //     status: SubscriptionStatus.ACTIVE,
+  //     isActive: true,
+  //     child: null,
+  //   });
 
-    if (!subscription) {
-      return false;
-    }
+  //   if (!subscription) {
+  //     return false;
+  //   }
 
-    if (subscription.endDate < new Date()) {
-      return false;
-    }
+  //   if (subscription.endDate < new Date()) {
+  //     return false;
+  //   }
 
-    return subscription.childrenCount < subscription.maxChildren;
-  }
+  //   return subscription.childrenCount < subscription.maxChildren;
+  // }
 
   async getActiveSubscription(
-    userId: string,
-  ): Promise<SubscriptionDocument | null> {
-    return this.subscriptionModel.findOne({
-      user: userId,
-      status: SubscriptionStatus.ACTIVE,
-      isActive: true,
-      endDate: { $gt: new Date() },
-    });
+    currentUser: User,
+  ): Promise<SubscriptionDocument[]> {
+    return this.subscriptionModel
+      .find({
+        user: currentUser._id,
+        status: SubscriptionStatus.ACTIVE,
+        isActive: true,
+        endDate: { $gt: new Date() },
+      })
+      .populate('user')
+      .populate('child');
   }
 
-  async getSubscriptionStatus(userId: string) {
-    const subscription = await this.getActiveSubscription(userId);
-    if (!subscription) {
-      return {
-        hasActiveSubscription: false,
-        message: 'No active subscription',
-      };
-    }
-
-    return {
-      hasActiveSubscription: true,
-      subscription: {
-        status: subscription.status,
-        childrenCount: subscription.childrenCount,
-        maxChildren: subscription.maxChildren,
-        remainingChildren:
-          subscription.maxChildren - subscription.childrenCount,
-        endDate: subscription.endDate,
-      },
-    };
-  }
 }
+
+
+

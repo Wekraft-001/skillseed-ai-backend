@@ -120,7 +120,7 @@ export class AiService {
     const { scale, phases, funBreaks } = ageScales[ageRange];
 
     const prompt = `
-    Create a fun and interactive career discovery quiz for a child aged ${user.age} (age range ${ageRange}). The quiz should have 3 phases, each with 3-5 questions, similar to the following structure:
+    Create a fun and interactive career discovery quiz for a child aged ${user.age} (age range ${ageRange}). The quiz should have 3 phases, each with 10 questions, similar to the following structure:
     Phases: ${phases.join(', ')}
     Answer scale: ${scale.join(', ')}
     Fun breaks: After each phase, include a fun break idea like: ${funBreaks.join(', ')}

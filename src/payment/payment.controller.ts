@@ -1,4 +1,13 @@
-import { Controller, Post, Body, Get, Param, HttpCode, Req, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Param,
+  HttpCode,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { SubscriptionService } from 'src/subscription/subscription.service';
 import { CardPaymentRequest } from 'src/common/interfaces';
@@ -10,8 +19,8 @@ export class PaymentController {
     private readonly paymentService: PaymentService,
     private readonly subscriptionService: SubscriptionService,
   ) {}
-
-  @Post('webhook')
+  
+  @Post('/flutterwave/webhook')
   @HttpCode(200)
   async handleWebhook(@Req() req: Request, @Res() res: Response) {
     const event = req.body;
@@ -27,5 +36,4 @@ export class PaymentController {
 
     return res.sendStatus(200);
   }
-
 }

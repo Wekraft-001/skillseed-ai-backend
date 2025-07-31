@@ -75,7 +75,7 @@ export class SubscriptionController {
 
     const subscription = await this.subscriptionModel.findOneAndUpdate(
       {
-        use: user._id,
+        user: user._id,
         transactionRef: tx_ref,
         paymentStatus: PaymentStatus.PENDING,
       },
@@ -88,6 +88,8 @@ export class SubscriptionController {
       },
       { new: true },
     );
+
+    console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>', subscription)
 
     if (!subscription) {
       throw new NotFoundException('Subscription not found');

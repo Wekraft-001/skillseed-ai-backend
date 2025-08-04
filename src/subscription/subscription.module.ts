@@ -12,6 +12,7 @@ import { User, UserSchema } from 'src/modules/schemas';
 import { HttpModule } from '@nestjs/axios';
 import { ParentDashboardModule } from 'src/modules/dashboard/parents/module/dashboard.module';
 import { SubscriptionMonitorService } from './subscription-monitor.service';
+import { EmailModule } from 'src/common/utils/mailing/email.module';
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { SubscriptionMonitorService } from './subscription-monitor.service';
     PaymentModule,
     LoggerModule,
     HttpModule,
-    ParentDashboardModule
+    ParentDashboardModule,
+    EmailModule
   ],
   controllers: [SubscriptionController],
   providers: [SubscriptionService, SubscriptionMonitorService],

@@ -211,8 +211,8 @@ export class SubscriptionService {
         amount: subscriptionData.amount,
         currency: subscriptionData.currency,
         startDate: new Date(),
-        // endDate: new Date(Date.now() + 1 * 60 * 1000), // 1 minute from now
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        endDate: new Date(Date.now() + 1 * 60 * 1000), // 1 minute from now
+        // endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         childrenCount: 0,
         maxChildren: 30,
         child: null,

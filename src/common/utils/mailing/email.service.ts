@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
+import { Subject } from 'rxjs';
+import { log } from 'winston';
 
 @Injectable()
 export class EmailService {
@@ -84,6 +86,28 @@ export class EmailService {
       console.log('✅ Email sent:', info.response);
     } catch (error) {
       console.error('❌ Failed to send email:', error);
+    }
+  }
+  async sendExpiredSubscriptionEmail(email: string, firstName: string) {
+    const mailOptions = {
+      from: process.env.MAIL_FROM,
+      to: email,
+      subject: 'Your Subscription Has Expired',
+      html: `
+      <p>Hi ${firstName},</p>
+      <p>We noticed that your subscription has expired as of today.</p>
+      <p>If you'd like to renew and continue enjoying Skillseed, please log in to your account and update your payment details.</p>
+      <p>Let us know if you need any help.</p>
+      <p><strong>The Skillseed Team</strong></p>
+      `,
+    };
+
+    try {
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('✅ Expiration email sent:', info.response)
+      
+    } catch (error) {
+      console.log('❌ Failed to send expiration email:', error);
     }
   }
 }

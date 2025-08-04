@@ -123,6 +123,7 @@ export class ParentDashboardService {
     session.startTransaction();
 
     try {
+
       let createChildPayment;
 
       if (paymentMethod === PaymentMethod.CREDIT_CARD) {
@@ -175,6 +176,10 @@ export class ParentDashboardService {
       throw error;
     }
   }
+
+  // async generateRenewalPaymentLink (userId: string, subscription: SubscriptionDocument): Promise<{ authorizationUrl: string}> {
+    
+  // }
 
   async getTempStudentData(childTempId: string): Promise<TempStudent | null> {
     return await this.tempStudentModel.findOne({ childTempId });

@@ -41,10 +41,15 @@ export class AiService {
     });
   }
 
-  async generateCareerQuiz(user: User, userAgeRange: string): Promise<CareerQuiz> {
+  async generateCareerQuiz(
+    user: User,
+    userAgeRange: string,
+  ): Promise<CareerQuiz> {
     const validAgeRanges = ['6-8', '9-12', '13-15', '16-17'];
     if (!validAgeRanges.includes(userAgeRange)) {
-      throw new BadRequestException(`Invalid userAgeRange: ${userAgeRange}. Must be one of: ${validAgeRanges.join(', ')}`);
+      throw new BadRequestException(
+        `Invalid userAgeRange: ${userAgeRange}. Must be one of: ${validAgeRanges.join(', ')}`,
+      );
     }
 
     const ageScales = {
@@ -184,25 +189,28 @@ export class AiService {
       .exec();
     if (!quiz) throw new NotFoundException('Quiz not found');
 
-   if(!dto.answers || !Array.isArray(dto.answers)) {
-    throw new BadRequestException('Answers array is missing or invalid');
-   }
-
-   const answersText: string[] = [];
-
-   for (const answer of dto.answers) {
-    const phase = quiz.phases[answer.phaseIndex];
-    if(!phase) {
-      throw new BadRequestException(`Invalid phase index: ${answer.phaseIndex}`);
-    }
-    const question = phase.questions[answer.questionIndex];
-    if(!question) {
-      throw new BadRequestException(`Invalid questionIndex: ${answer.questionIndex} `);
+    if (!dto.answers || !Array.isArray(dto.answers)) {
+      throw new BadRequestException('Answers array is missing or invalid');
     }
 
-    answersText.push(`Question: ${question.text}\nAnswer: ${answer.answer}`);
+    const answersText: string[] = [];
 
-   }
+    for (const answer of dto.answers) {
+      const phase = quiz.phases[answer.phaseIndex];
+      if (!phase) {
+        throw new BadRequestException(
+          `Invalid phase index: ${answer.phaseIndex}`,
+        );
+      }
+      const question = phase.questions[answer.questionIndex];
+      if (!question) {
+        throw new BadRequestException(
+          `Invalid questionIndex: ${answer.questionIndex} `,
+        );
+      }
+
+      answersText.push(`Question: ${question.text}\nAnswer: ${answer.answer}`);
+    }
 
     // const answers = dto.answers
     //   .sort((a, b) =>
@@ -253,7 +261,6 @@ export class AiService {
     };
   }
 
-  
   async submitAnswers(dto: SubmitAnswersDto, userId: string) {
     const quiz = await this.quizModel
       .findById(dto.quizId)

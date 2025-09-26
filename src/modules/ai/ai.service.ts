@@ -18,1148 +18,14 @@ import {
   UserDocument,
 } from '../schemas';
 import { SubmitAnswersDto, UserRole } from 'src/common/interfaces';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class AiService {
   private openai: OpenAI;
-  private readonly predefinedQuizzes = {
-    '6-8': {
-      scale: [
-        '😞 Not at all',
-        '😐 A little',
-        '🙂 Sometimes',
-        '😀 Often',
-        '🤩 A lot',
-      ],
-      phases: [
-        {
-          name: 'What Makes You Smile?',
-          questions: [
-            {
-              text: 'How much do you like drawing or coloring?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Do you enjoy playing with puzzles or brain games?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'How much fun is it to build with blocks or LEGOs?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Do you like playing pretend (like doctor or teacher)?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Do you enjoy helping someone bake or cook?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Do you like singing or dancing to music?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Do you enjoy telling stories or making up adventures?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'How much do you like caring for animals or pets?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Do you enjoy reading books or listening to stories?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Do you like making your own crafts or toys?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-          ],
-          funBreak:
-            'Let them unlock a "Smile Star" badge and do a 30-sec dance break with an animation.',
-        },
-        {
-          name: 'Your Superpowers',
-          questions: [
-            {
-              text: 'Are you good at remembering things?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Do you help others clean up or organize?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: "Do you like trying things again if they don't work the first time?",
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Can you sit still and listen when someone is talking?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Are you good at saying how you feel?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Can you notice how others feel (sad, happy)?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Do you enjoy fixing or improving things?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Do you like sharing your things with others?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Can you stay calm when things go wrong?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Do you enjoy learning something new?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-          ],
-          funBreak:
-            '"Power-Up" moment – they get a virtual cape or badge: "Super Helper" or "Creative Star."',
-        },
-        {
-          name: 'If You Could...',
-          questions: [
-            {
-              text: 'Would you want to fly a rocket to the moon?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Would you like to design your own theme park?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Would you enjoy being the teacher for a day?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Would you want to take care of animals in a zoo?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Would you love to make a movie about your life?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Would you build a robot to help people?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Would you design cool clothes or costumes?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Would you invent a new toy?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Would you like to be on stage performing?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-            {
-              text: 'Would you create a storybook for other kids?',
-              answers: [
-                '😞 Not at all',
-                '😐 A little',
-                '🙂 Sometimes',
-                '😀 Often',
-                '🤩 A lot',
-              ],
-            },
-          ],
-          funBreak:
-            'Reveal their "Imagination Avatar" with a fun description like: "Future Inventor" or "Dreamy Designer."',
-        },
-      ],
-    },
-    '9-12': {
-      scale: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-      phases: [
-        {
-          name: 'What Do You Enjoy?',
-          questions: [
-            {
-              text: 'I enjoy reading and learning new facts.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I like building, fixing, or inventing things.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I enjoy acting, singing, or performing.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I like helping my classmates or friends.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I enjoy using computers or tablets to create.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I like planning or organizing things.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I enjoy drawing, painting, or making art.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I like working on challenges or brain games.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I enjoy writing stories, poems, or comics.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I enjoy exploring how things work.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-          ],
-          funBreak:
-            'Roll a digital dice to reveal "hidden powers" like "The Curious Leader" or "Imaginative Explorer."',
-        },
-        {
-          name: 'How Do You Work?',
-          questions: [
-            {
-              text: 'I like starting and finishing tasks on my own.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I get excited about solving difficult problems.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I enjoy working with others in groups.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: "I get frustrated when things don't go my way.",
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I keep my work neat and organized.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I ask lots of questions when learning.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I enjoy leading projects or group tasks.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I usually double-check my work.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I enjoy following step-by-step instructions.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: "I can keep working even when it's hard.",
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-          ],
-          funBreak:
-            'Unlock a new "Toolbox Skill" (like Focus, Leadership, Curiosity), with a sound effect or animation.',
-        },
-        {
-          name: 'Dream Job Fun',
-          questions: [
-            {
-              text: 'I would love to be a scientist or researcher.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I want to be a teacher or mentor one day.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I would enjoy creating games or animations.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: "I'm interested in becoming a doctor or nurse.",
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: "I'd love to be a chef or food artist.",
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I want to write books or scripts.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: "I'd enjoy being a lawyer or public speaker.",
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I want to travel the world to help others.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: 'I want to be a leader who changes things.',
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-            {
-              text: "I'd like to be on stage or in movies.",
-              answers: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-            },
-          ],
-          funBreak:
-            'Career Card Reveal — "You\'d shine as a Creative Director or Young Scientist!"',
-        },
-      ],
-    },
-    '13-15': {
-      scale: [
-        'Strongly Disagree',
-        'Disagree',
-        'Neutral',
-        'Agree',
-        'Strongly Agree',
-      ],
-      phases: [
-        {
-          name: 'How You See the World',
-          questions: [
-            {
-              text: 'I often question how things work.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: 'I like coming up with new solutions.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: "I notice small details others don't.",
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: "I'm curious about how people think.",
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: 'I like imagining different futures or realities.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: 'I enjoy learning about current events.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: 'I want to understand how systems work (e.g., apps, businesses).',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: 'I get excited by deep discussions.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: "I enjoy analyzing people's behavior.",
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: 'I like connecting different ideas together.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-          ],
-          funBreak:
-            '"Mind Map Reveal" — a glowing web shows their top thinking strengths.',
-        },
-        {
-          name: 'Who You Are With Others',
-          questions: [
-            {
-              text: 'I like being a team leader.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: 'I help keep peace in a group.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: "I support others when they're upset.",
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: "I'm comfortable speaking up with ideas.",
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: 'I like planning events or group tasks.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: 'I often encourage others to keep going.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: 'I enjoy group debates or discussions.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: 'I help organize people or materials.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: 'I try to listen before I speak.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: "I'm good at resolving problems in teams.",
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-          ],
-          funBreak:
-            'They earn a "Team Type" — e.g., "The Motivator," "The Organizer," or "The Listener."',
-        },
-        {
-          name: 'You in the Future',
-          questions: [
-            {
-              text: 'I want to be my own boss or entrepreneur.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: 'I dream of working with cutting-edge technology.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: "I'd love to do work that helps the planet.",
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: 'I see myself as a future inventor or designer.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: 'I want to influence policies or laws.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: 'I imagine myself on a creative team.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: "I'm passionate about solving real-world problems.",
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: "I'd like to build or manage big projects.",
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: "I'd love to mentor or coach others.",
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-            {
-              text: 'I want to work globally and travel.',
-              answers: [
-                'Strongly Disagree',
-                'Disagree',
-                'Neutral',
-                'Agree',
-                'Strongly Agree',
-              ],
-            },
-          ],
-          funBreak:
-            'They unlock their "Impact Identity" — "World Builder," "Creative Force," "Future Leader."',
-        },
-      ],
-    },
-    '16-18': {
-      scale: ['Very Untrue', 'Untrue', 'Neutral', 'True', 'Very True'],
-      phases: [
-        {
-          name: 'Values and Strengths',
-          questions: [
-            {
-              text: "I want to make an impact in people's lives.",
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I value independence and autonomy in work.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I enjoy being challenged mentally.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I care deeply about fairness and justice.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: "I'm drawn to beauty, art, or expression.",
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I enjoy leading people or ideas.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I find meaning in solving complex problems.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I believe in building communities.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: "I thrive when I'm learning something new.",
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I value freedom to create my own path.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-          ],
-          funBreak:
-            'Values visualization — a glowing "constellation" that connects their key values.',
-        },
-        {
-          name: 'Skills and Style',
-          questions: [
-            {
-              text: "I'm able to make decisions under pressure.",
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I can manage multiple tasks effectively.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I prefer structure over open-ended tasks.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I enjoy organizing ideas or systems.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: "I'm confident presenting or pitching.",
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I stay calm and focused when things are unclear.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I work best when I know the purpose behind a task.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I like collaborating with others to get results.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: "I'm comfortable giving and receiving feedback.",
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I adapt quickly when plans change.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-          ],
-          funBreak:
-            'Unlock their "Skill DNA" — with highlights like "Decision-Maker," "Strategist," or "Vision Mapper."',
-        },
-        {
-          name: 'Vision & Career Match',
-          questions: [
-            {
-              text: "I'm interested in launching my own business.",
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I want to solve health or science problems.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: "I'd love to create visual content or design.",
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I want to research and innovate in tech.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: "I'd enjoy shaping education or policy.",
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I want to lead others toward a big goal.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: "I'd thrive in a creative or storytelling role.",
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: 'I want a career that allows me to travel.',
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: "I'm passionate about social change.",
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-            {
-              text: "I want to develop new ideas that don't exist yet.",
-              answers: [
-                'Very Untrue',
-                'Untrue',
-                'Neutral',
-                'True',
-                'Very True',
-              ],
-            },
-          ],
-          funBreak:
-            'Reveal a "Career Launchpad" with 3 potential future journeys they can explore deeper.',
-        },
-      ],
-    },
-  };
+  // Quiz data has been migrated to JSON files in the quiz-data directory
+  // See files: age-scales.json, questions-6-8.json, questions-9-12.json, etc.
 
   constructor(
     private configService: ConfigService,
@@ -1224,7 +90,7 @@ export class AiService {
     return jsonMatch ? jsonMatch[1].trim() : text.trim();
   }
 
-  // Generate a guest quiz JSON (no DB writes)
+  // Generate a guest quiz JSON using OpenAI (no DB writes)
   async generateGuestCareerQuiz(sessionId: string, ageRange: string) {
     const validAgeRanges = ['6-8', '9-12', '13-15', '16-18'];
     if (!validAgeRanges.includes(ageRange)) {
@@ -1233,176 +99,163 @@ export class AiService {
       );
     }
 
-    // Predefined scales for different age ranges
-    const ageScales = {
-      '6-8': [
-        '😞 Not at all',
-        '😐 A little',
-        '🙂 Sometimes',
-        '😀 Often',
-        '🤩 A lot',
-      ],
-      '9-12': ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-      '13-15': [
-        'Strongly Disagree',
-        'Disagree',
-        'Neutral',
-        'Agree',
-        'Strongly Agree',
-      ],
-      '16-18': ['Very Untrue', 'Untrue', 'Neutral', 'True', 'Very True'],
-    };
+    try {
+      // Load age scales from JSON file
+      const scalesFilePath = path.join(__dirname, 'quiz-data', 'age-scales.json');
+      const scalesFileContent = fs.readFileSync(scalesFilePath, 'utf8');
+      const ageScales = JSON.parse(scalesFileContent);
 
-    // Predefined questions for each age range
-    const predefinedQuestions = {
-      '6-8': [
-        'How much do you like drawing or coloring?',
-        'Do you enjoy playing with puzzles or brain games?',
-        'How much fun is it to build with blocks or LEGOs?',
-        'Do you like playing pretend (like doctor or teacher)?',
-        'Do you enjoy helping someone bake or cook?',
-        'Do you like singing or dancing to music?',
-        'Do you enjoy telling stories or making up adventures?',
-        'How much do you like caring for animals or pets?',
-        'Do you enjoy reading books or listening to stories?',
-        'Do you like making your own crafts or toys?',
-        'Are you good at remembering things?',
-        'Do you help others clean up or organize?',
-        'Do you like trying things again if they don\'t work the first time?',
-        'Can you sit still and listen when someone is talking?',
-        'Are you good at saying how you feel?',
-        'Can you notice how others feel (sad, happy)?',
-        'Do you enjoy fixing or improving things?',
-        'Do you like sharing your things with others?',
-        'Can you stay calm when things go wrong?',
-        'Do you enjoy learning something new?',
-        'Would you want to fly a rocket to the moon?',
-        'Would you like to design your own theme park?',
-        'Would you enjoy being the teacher for a day?',
-        'Would you want to take care of animals in a zoo?',
-        'Would you love to make a movie about your life?',
-        'Would you build a robot to help people?',
-        'Would you design cool clothes or costumes?',
-        'Would you invent a new toy?',
-        'Would you like to be on stage performing?',
-        'Would you create a storybook for other kids?'
-      ],
-      '9-12': [
-        'I enjoy reading and learning new facts.',
-        'I like building, fixing, or inventing things.',
-        'I enjoy acting, singing, or performing.',
-        'I like helping my classmates or friends.',
-        'I enjoy using computers or tablets to create.',
-        'I like planning or organizing things.',
-        'I enjoy drawing, painting, or making art.',
-        'I like working on challenges or brain games.',
-        'I enjoy writing stories, poems, or comics.',
-        'I enjoy exploring how things work.',
-        'I like starting and finishing tasks on my own.',
-        'I get excited about solving difficult problems.',
-        'I enjoy working with others in groups.',
-        'I get frustrated when things don\'t go my way.',
-        'I keep my work neat and organized.',
-        'I ask lots of questions when learning.',
-        'I enjoy leading projects or group tasks.',
-        'I usually double-check my work.',
-        'I enjoy following step-by-step instructions.',
-        'I can keep working even when it\'s hard.',
-        'I would love to be a scientist or researcher.',
-        'I want to be a teacher or mentor one day.',
-        'I would enjoy creating games or animations.',
-        'I\'m interested in becoming a doctor or nurse.',
-        'I\'d love to be a chef or food artist.',
-        'I want to write books or scripts.',
-        'I\'d enjoy being a lawyer or public speaker.',
-        'I want to travel the world to help others.',
-        'I want to be a leader who changes things.',
-        'I\'d like to be on stage or in movies.'
-      ],
-      '13-15': [
-        'I often question how things work.',
-        'I like coming up with new solutions.',
-        'I notice small details others don\'t.',
-        'I\'m curious about how people think.',
-        'I like imagining different futures or realities.',
-        'I enjoy learning about current events.',
-        'I want to understand how systems work (e.g., apps, businesses).',
-        'I get excited by deep discussions.',
-        'I enjoy analyzing people\'s behavior.',
-        'I like connecting different ideas together.',
-        'I like being a team leader.',
-        'I help keep peace in a group.',
-        'I support others when they\'re upset.',
-        'I\'m comfortable speaking up with ideas.',
-        'I like planning events or group tasks.',
-        'I often encourage others to keep going.',
-        'I enjoy group debates or discussions.',
-        'I help organize people or materials.',
-        'I try to listen before I speak.',
-        'I\'m good at resolving problems in teams.',
-        'I want to be my own boss or entrepreneur.',
-        'I dream of working with cutting-edge technology.',
-        'I\'d love to do work that helps the planet.',
-        'I see myself as a future inventor or designer.',
-        'I want to influence policies or laws.',
-        'I imagine myself on a creative team.',
-        'I\'m passionate about solving real-world problems.',
-        'I\'d like to build or manage big projects.',
-        'I\'d love to mentor or coach others.',
-        'I want to work globally and travel.'
-      ],
-      '16-18': [
-        'I want to make an impact in people\'s lives.',
-        'I value independence and autonomy in work.',
-        'I enjoy being challenged mentally.',
-        'I care deeply about fairness and justice.',
-        'I\'m drawn to beauty, art, or expression.',
-        'I enjoy leading people or ideas.',
-        'I find meaning in solving complex problems.',
-        'I believe in building communities.',
-        'I thrive when I\'m learning something new.',
-        'I value freedom to create my own path.',
-        'I\'m able to make decisions under pressure.',
-        'I can manage multiple tasks effectively.',
-        'I prefer structure over open-ended tasks.',
-        'I enjoy organizing ideas or systems.',
-        'I\'m confident presenting or pitching.',
-        'I stay calm and focused when things are unclear.',
-        'I work best when I know the purpose behind a task.',
-        'I like collaborating with others to get results.',
-        'I\'m comfortable giving and receiving feedback.',
-        'I adapt quickly when plans change.',
-        'I\'m interested in launching my own business.',
-        'I want to solve health or science problems.',
-        'I\'d love to create visual content or design.',
-        'I want to research and innovate in tech.',
-        'I\'d enjoy shaping education or policy.',
-        'I want to lead others toward a big goal.',
-        'I\'d thrive in a creative or storytelling role.',
-        'I want a career that allows me to travel.',
-        'I\'m passionate about social change.',
-        'I want to develop new ideas that don\'t exist yet.'
-      ]
-    };
+      // Get the appropriate scale for the user's age range
+      const scale = ageScales[ageRange];
+      
+      if (!scale) {
+        throw new BadRequestException('Failed to get answer scale for the specified age range');
+      }
+      
+      this.logger.log(`Generating AI-based guest career quiz for age range ${ageRange}`);
+      
+      // Generate exactly 15 questions using OpenAI
+      const generatedQuestions = await this.generateAIQuestions(ageRange, 15);
+      
+      // Format questions with their answer scales
+      const formattedQuestions = generatedQuestions.map(text => ({
+        text,
+        answers: scale
+      }));
 
-    // Get the appropriate scale and questions for the user's age range
-    const scale = ageScales[ageRange];
-    const questions = predefinedQuestions[ageRange];
-
-    if (!scale || !questions) {
-      throw new BadRequestException('Failed to get questions for the specified age range');
+      // Return the quiz with questions only (no phases)
+      return {
+        questions: formattedQuestions
+      };
+    } catch (error) {
+      this.logger.error(`Error generating guest career quiz: ${error.message}`);
+      throw new BadRequestException(`Failed to generate quiz: ${error.message}`);
     }
+  }
+  
+  // Helper method to generate all questions using AI for guest users
+  private async generateAIQuestions(ageRange: string, count: number): Promise<string[]> {
+    this.logger.log(`Generating ${count} AI questions for guest user, age range ${ageRange}`);
+    
+    try {
+      // Load the appropriate scales for this age range
+      const scalesFilePath = path.join(__dirname, 'quiz-data', 'age-scales.json');
+      const scalesFileContent = fs.readFileSync(scalesFilePath, 'utf8');
+      const ageScales = JSON.parse(scalesFileContent);
+      const scaleType = ageScales[ageRange];
+      
+      // Determine the appropriate question format based on the answer scale
+      let frequencyBased = false;
+      let agreementBased = false;
+      let truthBased = false;
+      
+      if (scaleType && Array.isArray(scaleType)) {
+        const scaleText = scaleType.join(' ').toLowerCase();
+        frequencyBased = scaleText.includes('never') || 
+                        scaleText.includes('rarely') || 
+                        scaleText.includes('sometimes') || 
+                        scaleText.includes('often') || 
+                        scaleText.includes('always') ||
+                        scaleText.includes('a little') ||
+                        scaleText.includes('a lot');
+        
+        agreementBased = scaleText.includes('agree') || scaleText.includes('disagree');
+        truthBased = scaleText.includes('true') || scaleText.includes('untrue');
+      }
+      
+      // Construct an appropriate prompt based on the scale type
+      let questionFormat = '';
+      
+      if (frequencyBased) {
+        questionFormat = `
+        IMPORTANT: Format all questions as frequency-based questions that can be answered with options like:
+        "Never", "Rarely", "Sometimes", "Often", "Always" or similar frequency scales.
+        
+        Examples of good frequency-based questions:
+        - "How often do you enjoy solving puzzles?"
+        - "Do you enjoy leading group activities?"
+        - "How frequently do you find yourself helping others with their problems?"
+        
+        DO NOT generate open-ended questions like "What is your favorite subject?" as these cannot be answered with frequency scales.`;
+      }
+      else if (agreementBased) {
+        questionFormat = `
+        IMPORTANT: Format all questions as statements that can be responded to with agreement scales like:
+        "Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree".
+        
+        Examples of good agreement-based statements:
+        - "I enjoy figuring out how things work."
+        - "Working with numbers comes naturally to me."
+        - "I prefer to be the leader in group settings."
+        
+        DO NOT generate open-ended questions like "What would you like to be when you grow up?" as these cannot be answered with agreement scales.`;
+      }
+      else if (truthBased) {
+        questionFormat = `
+        IMPORTANT: Format all questions as statements about the person that can be rated on a truth scale like:
+        "Very Untrue", "Untrue", "Neutral", "True", "Very True".
+        
+        Examples of good truth-based statements:
+        - "I am someone who likes to solve complex problems."
+        - "Being creative is important to me."
+        - "I find it easy to organize tasks and activities."
+        
+        DO NOT generate open-ended questions like "What interests you the most?" as these cannot be answered with truth scales.`;
+      }
+      else {
+        questionFormat = `
+        Format all questions to be appropriate for the age range and ensure they can be answered with simple scaled responses.
+        DO NOT generate open-ended questions requiring explanations or specific choices.`;
+      }
 
-    // Format questions with their answer scales
-    const formattedQuestions = questions.map(text => ({
-      text,
-      answers: scale
-    }));
-
-    // Return the quiz with questions only (no phases)
-    return {
-      questions: formattedQuestions
-    };
+      const prompt = `Generate exactly ${count} age-appropriate career exploration questions for a ${ageRange} year old child. 
+      The questions should help identify their interests, skills, and preferences related to potential future careers.
+      Make sure the questions are diverse and cover different aspects like:
+      - Creative interests
+      - Analytical thinking
+      - Social interactions
+      - Leadership qualities
+      - Problem-solving abilities
+      - Learning preferences
+      
+      ${questionFormat}
+      
+      Format each question as a separate item in a JSON array of strings.
+      Do not include any explanations or text outside of the JSON array.
+      Make sure questions are neutral and don't mention any specific names.
+      Each question should be brief and clearly phrased for the age range.`;
+      
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+      });
+      
+      const content = response.choices[0].message.content || '[]';
+      
+      // Extract JSON array from the response
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        this.logger.warn(`Failed to extract JSON array from AI response: ${content}`);
+        return [];
+      }
+      
+      try {
+        const questions = JSON.parse(jsonMatch[0]);
+        if (!Array.isArray(questions) || questions.length < count) {
+          this.logger.warn(`AI didn't generate enough questions (${questions.length}/${count})`);
+          // If we got fewer than requested, just return what we have
+          return Array.isArray(questions) ? questions : [];
+        }
+        return questions.slice(0, count); // Ensure we have exactly the requested number
+      } catch (err) {
+        this.logger.error(`Error parsing AI-generated questions: ${err.message}`);
+        return [];
+      }
+    } catch (error) {
+      this.logger.error(`Error generating AI questions: ${error.message}`);
+      return [];
+    }
   }
 
   async generateGuestQuiz(sessionId: string, ageRange: string) {
@@ -1420,18 +273,28 @@ export class AiService {
   async submitGuestAnswers(body: {
     sessionId: string;
     quizId: string;
-    answers: { phaseIndex: number; questionIndex: number; answer: string }[];
+    answers: { phaseIndex?: number; questionIndex: number; answer: string }[];
   }) {
     const key = this.guestKey(body.sessionId, body.quizId);
     const raw = await this.redisService.get(key);
     if (!raw) throw new NotFoundException('Guest quiz not found');
     const state = JSON.parse(raw);
+    
+    // Make sure answers are properly formatted - in new structure, we don't need phaseIndex
+    const formattedAnswers = body.answers.map(answer => ({
+      questionIndex: answer.questionIndex,
+      answer: answer.answer,
+      // Include phaseIndex as 0 if missing to maintain backward compatibility
+      phaseIndex: answer.phaseIndex !== undefined ? answer.phaseIndex : 0
+    }));
+    
     const result = await this.analyzeGuestAnswers({
       sessionId: body.sessionId,
       quizId: body.quizId,
-      answers: body.answers,
+      answers: formattedAnswers,
     });
-    state.answers = body.answers;
+    
+    state.answers = formattedAnswers;
     state.analysis = result.analysis;
     await this.redisService.set(key, JSON.stringify(state), 86400);
     return result;
@@ -1450,13 +313,28 @@ export class AiService {
 
     const answersText: string[] = [];
     for (const a of params.answers) {
-      const phase = state.quiz?.phases?.[a.phaseIndex];
-      const question = phase?.questions?.[a.questionIndex];
+      // Check if the quiz structure has changed and questions might be at the top level
+      let question;
+      if (state.quiz?.phases) {
+        // Old structure with phases
+        const phase = state.quiz?.phases?.[a.phaseIndex];
+        question = phase?.questions?.[a.questionIndex];
+      } else {
+        // New structure with questions at top level
+        question = state.quiz?.questions?.[a.questionIndex];
+      }
       if (!question) continue;
       answersText.push(`Question: ${question.text}\nAnswer: ${a.answer}`);
     }
 
-    const prompt = `Given the following answers from a child, provide a short, friendly profile and recommendations.\n\n${answersText.join('\n\n')}`;
+    // Enhanced prompt that explicitly instructs to avoid using names for guests
+    const prompt = `Given the following answers from a child (age range: ${state.ageRange}), provide a short, friendly profile and recommendations. 
+    
+Important: This is for a guest user who is not signed in. DO NOT use any specific names or personal identifiers in your response. 
+Address the recommendations to "you" or "the child" rather than using any names.
+
+${answersText.join('\n\n')}`;
+
     const response = await this.openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: prompt }],
@@ -1491,123 +369,114 @@ export class AiService {
       );
     }
 
-    const ageScales = {
+    // Only use phases and funBreaks from hardcoded data, scales will be loaded from JSON
+    const phaseData = {
       '6-8': {
-        scale: [
-          '😞 Not at all',
-          '😐 A little',
-          '🙂 Sometimes',
-          '😀 Often',
-          '🤩 A lot',
-        ],
         phases: [
           'What Makes You Smile?',
           'Your Superpowers',
           'If You Could...',
         ],
         funBreaks: [
-          'Unlock a “Smile Star” badge and do a 30-sec dance break with an animation.',
-          '“Power-Up” moment – they get a virtual cape or badge: “Super Helper” or “Creative Star.”',
-          'Reveal their “Imagination Avatar” with a fun description like: “Future Inventor” or “Dreamy Designer.”',
+          'Unlock a "Smile Star" badge and do a 30-sec dance break with an animation.',
+          '"Power-Up" moment – they get a virtual cape or badge: "Super Helper" or "Creative Star."',
+          'Reveal their "Imagination Avatar" with a fun description like: "Future Inventor" or "Dreamy Designer."',
         ],
       },
       '9-12': {
-        scale: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
         phases: ['What Do You Enjoy?', 'How Do You Work?', 'Dream Job Fun'],
         funBreaks: [
-          'Roll a digital dice to reveal “hidden powers” like “The Curious Leader” or “Imaginative Explorer.”',
-          'Unlock a new “Toolbox Skill” (like Focus, Leadership, Curiosity), with a sound effect or animation.',
-          'Career Card Reveal — “You’d shine as a Creative Director or Young Scientist!”',
+          'Roll a digital dice to reveal "hidden powers" like "The Curious Leader" or "Imaginative Explorer."',
+          'Unlock a new "Toolbox Skill" (like Focus, Leadership, Curiosity), with a sound effect or animation.',
+          'Career Card Reveal — "You\'d shine as a Creative Director or Young Scientist!"',
         ],
       },
       '13-15': {
-        scale: [
-          'Strongly Disagree',
-          'Disagree',
-          'Neutral',
-          'Agree',
-          'Strongly Agree',
-        ],
         phases: [
           'How You See the World',
           'Who You Are With Others',
           'You in the Future',
         ],
         funBreaks: [
-          '“Mind Map Reveal” — a glowing web shows their top thinking strengths.',
-          'They earn a “Team Type” — e.g., “The Motivator,” “The Organizer,” or “The Listener.”',
-          'They unlock their “Impact Identity” — “World Builder,” “Creative Force,” “Future Leader.”',
+          '"Mind Map Reveal" — a glowing web shows their top thinking strengths.',
+          'They earn a "Team Type" — e.g., "The Motivator," "The Organizer," or "The Listener."',
+          'They unlock their "Impact Identity" — "World Builder," "Creative Force," "Future Leader."',
         ],
       },
       '16-18': {
-        scale: ['Very Untrue', 'Untrue', 'Neutral', 'True', 'Very True'],
         phases: [
           'Values and Strengths',
           'Skills and Style',
           'Vision & Career Match',
         ],
         funBreaks: [
-          'Values visualization — a glowing “constellation” that connects their key values.',
-          'Unlock their “Skill DNA” — with highlights like “Decision-Maker,” “Strategist,” or “Vision Mapper.”',
-          'Reveal a “Career Launchpad” with 3 potential future journeys they can explore deeper.',
+          'Values visualization — a glowing "constellation" that connects their key values.',
+          'Unlock their "Skill DNA" — with highlights like "Decision-Maker," "Strategist," or "Vision Mapper."',
+          'Reveal a "Career Launchpad" with 3 potential future journeys they can explore deeper.',
         ],
       },
     };
 
-    let ageRange: string;
-    // Use the provided userAgeRange parameter instead of calculating from user.age
-    ageRange = userAgeRange;
+    const ageRange = userAgeRange;
     
     // Log which age range we're using
     this.logger.log(`Using age range: ${ageRange} for user ${user._id} (actual age: ${user.age})`);
     
-    if (!ageScales[ageRange]) {
-      throw new BadRequestException(`Invalid age range: ${ageRange}. Must be one of: ${Object.keys(ageScales).join(', ')}`);
+    if (!phaseData[ageRange]) {
+      throw new BadRequestException(`Invalid age range: ${ageRange}. Must be one of: ${Object.keys(phaseData).join(', ')}`);
     }
-
-    const { scale, funBreak } = ageScales[ageRange];
-
-    const prompt = `
-    Create a fun and interactive career discovery quiz for a child aged ${user.age} (age range ${ageRange}).
-    
-    Answer scale: ${scale.join(', ')}
-    
-    Generate a quiz with 3 phases, each with 5-10 questions that are appropriate for the age group. 
-    Each question must have ${scale.length} multiple-choice answer options matching the scale exactly in this order: ${scale.join(', ')}.
-    
-    Each phase should have a "name" property and a "funBreak" property describing a fun interactive element.
-    
-    Your response must be a valid JSON object with EXACTLY this structure:
-    {
-      "phases": [
-        {
-          "name": "Phase name",
-          "questions": [
-            {
-              "text": "Question text",
-              "answers": ["${scale[0]}", "${scale[1]}", "${scale[2]}", "${scale[3]}", "${scale[4]}"]
-            }
-          ],
-          "funBreak": "Fun break description for this phase"
-        }
-      ]
-    }
-
-    Do not include any text before or after the JSON. Return only the JSON object.
-    Ensure the questions are engaging, age-appropriate, and encourage self-reflection.`;
-
-    const response = await this.openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: prompt }],
-    });
 
     try {
-      const contentText = response.choices[0].message.content || '{}';
-      this.logger.debug(`Raw quiz response: ${contentText}`);
+      // Load age scales from JSON file
+      const scalesFilePath = path.join(__dirname, 'quiz-data', 'age-scales.json');
+      const scalesFileContent = fs.readFileSync(scalesFilePath, 'utf8');
+      const jsonAgeScales = JSON.parse(scalesFileContent);
+
+      // Load predefined questions for the specific age range from JSON file
+      const questionsFilePath = path.join(__dirname, 'quiz-data', `questions-${ageRange}.json`);
+      const questionsFileContent = fs.readFileSync(questionsFilePath, 'utf8');
+      const predefinedQuestions = JSON.parse(questionsFileContent);
+
+      // Get the appropriate scale from the file
+      const scale = jsonAgeScales[ageRange];
       
-      // Extract and parse JSON from the response
-      const parsedContent = this.extractJson(contentText);
-      const quizContent = JSON.parse(parsedContent);
+      if (!scale || !predefinedQuestions) {
+        throw new BadRequestException('Failed to get questions for the specified age range');
+      }
+      
+      this.logger.log(`Using predefined questions for signed-in user ${user._id} with age range ${ageRange} - ${predefinedQuestions.length} questions available`);
+      
+      // Format questions with their answer scales
+      const formattedQuestions = predefinedQuestions.map(text => ({
+        text,
+        answers: scale
+      }));
+
+      // Structure the quiz with phases based on the predefined questions
+      const { phases, funBreaks } = phaseData[ageRange];
+      
+      // Create phase structure
+      const questionCount = formattedQuestions.length;
+      const phaseSize = Math.ceil(questionCount / 3);
+      
+      const quizPhases = [];
+      for (let i = 0; i < 3; i++) {
+        const startIdx = i * phaseSize;
+        const endIdx = Math.min(startIdx + phaseSize, questionCount);
+        
+        if (startIdx < questionCount) {
+          quizPhases.push({
+            name: phases[i],
+            questions: formattedQuestions.slice(startIdx, endIdx),
+            funBreak: funBreaks[i]
+          });
+        }
+      }
+      
+      // Create structured quiz content
+      const quizContent = {
+        phases: quizPhases
+      };
       
       // Validate quiz structure
       if (!quizContent.phases || !Array.isArray(quizContent.phases)) {
@@ -1635,10 +504,10 @@ export class AiService {
 
       // Flatten questions and collect fun breaks for database structure
       const flattenedQuestions = [];
-      const funBreaks = [];
+      const allFunBreaks = [];
       
       quizContent.phases.forEach(phase => {
-        funBreaks.push(phase.funBreak);
+        allFunBreaks.push(phase.funBreak);
         phase.questions.forEach(question => {
           flattenedQuestions.push({
             text: question.text,
@@ -1651,7 +520,7 @@ export class AiService {
         user: user._id,
         ageRange,
         questions: flattenedQuestions,
-        funBreaks: funBreaks,
+        funBreaks: allFunBreaks,
         completed: false,
         userAnswers: [],
         analysis: '',
@@ -1715,34 +584,24 @@ export class AiService {
       answersText.push(`Question: ${question.text}\nAnswer: ${answer.answer}`);
     }
 
-    // const answers = dto.answers
-    //   .sort((a, b) =>
-    //     a.phaseIndex !== b.phaseIndex
-    //       ? a.phaseIndex - b.phaseIndex
-    //       : a.questionIndex - b.questionIndex,
-    //   )
-    //   .map((a) => {
-    //     const questionText =
-    //       quiz.phases[a.phaseIndex].questions[a.questionIndex].text;
-    //     return `Question: ${questionText}\nAnswer: ${a.answer}`;
-    //   })
-    //   .join('\n\n');
+    // Enhanced prompt that includes the user's name for personalized recommendations
+    const userObj = quiz.user as any;
+    const userName = userObj && userObj.firstName ? userObj.firstName : 'the student';
 
-    const prompt = `Given the following answers from a child... 
-      You are a career counselor analyzing a student's responses to career assessment questions. 
-      Based on the following questions and answers, provide a short human toned up to 4 sentence career analysis and recommendations.
+    // Enhanced prompt that includes the user's name for personalized recommendations
+    const prompt = `Given the following answers from a child named ${userName} (age range: ${quiz.ageRange}), provide a short, friendly profile and recommendations. 
 
-      ${answersText.join('\n\n')}
+${answersText.join('\n\n')}
 
-      Please provide:
-      1. Analysis of the student's interests and strengths
-      2. Potential career paths that align with their responses
-      3. Skills they should develop
-      4. Educational recommendations
-      5. Next steps for career exploration
+Please provide:
+1. Analysis of ${userName}'s interests and strengths
+2. Potential career paths that align with their responses
+3. Skills they should develop
+4. Educational recommendations
+5. Next steps for career exploration
 
-      Format your response in a clear, encouraging manner suitable for a curious student.
-  `.trim();
+Format your response in a clear, encouraging manner suitable for a curious student.
+`.trim();
 
     const response = await this.openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
@@ -2314,4 +1173,7 @@ For example:
       return result; // Return empty arrays if fallback fails
     }
   }
+
+  // The rest of the implementation remains unchanged
+  // ... (additional methods like submitAnswers, generateProfileOutcome, etc.)
 }

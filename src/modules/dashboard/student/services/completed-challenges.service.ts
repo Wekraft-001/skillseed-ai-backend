@@ -56,7 +56,7 @@ export class CompletedChallengesService {
     }
   }
 
-  async completeChallenge(userId: string, challengeId: string, completionNotes?: string) {
+  async completeChallenge(userId: string, challengeId: string, completionNotes?: string, workFileUrl?: string) {
     try {
       // Check if challenge exists
       const challenge = await this.challengeModel.findById(challengeId).exec();
@@ -78,12 +78,13 @@ export class CompletedChallengesService {
         userId,
         challengeId,
         completionNotes,
+        workFileUrl,
         completedAt: new Date(),
       });
       await completedChallenge.save();
 
       // Award badge and stars for challenge completion
-      const badge = await this.rewardsService.completeChallenge(userId, challengeId);
+      const badge = await this.rewardsService.completeChallenge(userId, challengeId, completionNotes, workFileUrl);
 
       return {
         message: 'Challenge completed successfully',

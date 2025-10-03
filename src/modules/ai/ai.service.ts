@@ -680,17 +680,10 @@ Format your overall response in a clear, encouraging manner suitable for a curio
       .exec();
 
     try {
-      // Mark the quiz as completed
-      quiz.completed = true;
-      quiz.userAnswers = dto.answers;
-      
-      // Save the updated quiz
-      await quiz.save();
-      
-      // Award stars for quiz completion
+      // Award stars for quiz completion (quiz is already saved in analyzeAnswers)
       this.logger.log(`Awarding stars for quiz completion to user ${result.userId} for quiz ${dto.quizId}`);
-      await this.rewardsService.awardQuizCompletionStars(result.userId, dto.quizId);
-      this.logger.log(`Successfully awarded stars for quiz ${dto.quizId}`);
+      const awardedStar = await this.rewardsService.awardQuizCompletionStars(result.userId, dto.quizId);
+      this.logger.log(`Successfully awarded stars for quiz ${dto.quizId}: ${JSON.stringify(awardedStar)}`);
       
       // Ensure the quiz is linked to the user
       await this.userModel.findByIdAndUpdate(
@@ -704,7 +697,7 @@ Format your overall response in a clear, encouraging manner suitable for a curio
       
     } catch (error) {
       // Log the error but don't fail the whole operation
-      this.logger.error(`Failed to update quiz completion status: ${error.message}`);
+      this.logger.error(`Failed to award stars or update user: ${error.message}`);
     }
       
     // Include user details in the response

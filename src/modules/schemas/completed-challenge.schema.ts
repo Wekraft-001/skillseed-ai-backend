@@ -24,6 +24,9 @@ export class CompletedChallenge {
   @Prop({ required: false })
   completionNotes?: string;
 
+  @Prop({ required: false })
+  workFileUrl?: string;
+
   @Prop({ default: Date.now })
   completedAt: Date;
 }

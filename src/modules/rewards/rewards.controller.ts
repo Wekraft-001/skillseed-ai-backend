@@ -6,15 +6,21 @@ import {
   UseGuards,
   Param,
   Query,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/modules/auth/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/interfaces';
 import { CurrentUser } from 'src/common/decorators';
-import { ApiOperation, ApiTags, ApiParam, ApiBody, ApiQuery } from '@nestjs/swagger';
+import { ApiOperation, ApiTags, ApiParam, ApiBody, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { RewardsService } from './rewards.service';
 import { User, BadgeTier } from '../schemas';
+import { CompleteChallengeDto } from './dto/complete-challenge.dto';
+import { uploadDocumentToAzure } from 'src/common/utils/azure-upload.util';
 
 @Controller('student/rewards')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -98,17 +104,65 @@ export class RewardsController {
   }
 
   @Post('complete-challenge/:challengeId')
-  @ApiOperation({ summary: 'Mark a challenge as completed and earn a badge' })
+  @UseInterceptors(FileInterceptor('workFile'))
+  @ApiOperation({ summary: 'Mark a challenge as completed, upload work file, and earn a badge' })
+  @ApiConsumes('multipart/form-data')
   @ApiParam({ name: 'challengeId', type: 'string' })
+  @ApiBody({
+    description: 'Challenge completion with optional work file (jpg, png, pdf)',
+    schema: {
+      type: 'object',
+      properties: {
+        completionNotes: {
+          type: 'string',
+          description: 'Optional notes about the challenge completion',
+        },
+        workFile: {
+          type: 'string',
+          format: 'binary',
+          description: 'Work file (jpg, png, pdf)',
+        },
+      },
+    },
+  })
   async completeChallenge(
     @CurrentUser() user: User,
-    @Param('challengeId') challengeId: string
+    @Param('challengeId') challengeId: string,
+    @Body() completeChallengeDto: CompleteChallengeDto,
+    @UploadedFile() workFile?: Express.Multer.File
   ) {
-    const badge = await this.rewardsService.completeChallenge((user as any)._id, challengeId);
+    let workFileUrl: string | undefined;
+    
+    // Upload work file if provided
+    if (workFile) {
+      // Validate file type
+      const allowedMimeTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+      if (!allowedMimeTypes.includes(workFile.mimetype)) {
+        throw new BadRequestException('Invalid file type. Only JPG, PNG, and PDF files are allowed.');
+      }
+      
+      // Validate file size (10MB limit)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (workFile.size > maxSize) {
+        throw new BadRequestException('File size too large. Maximum size is 10MB.');
+      }
+      
+      const fileName = `challenge-${challengeId}/${Date.now()}-${workFile.originalname}`;
+      workFileUrl = await uploadDocumentToAzure(workFile, fileName);
+    }
+    
+    const badge = await this.rewardsService.completeChallenge(
+      (user as any)._id, 
+      challengeId,
+      completeChallengeDto.completionNotes,
+      workFileUrl
+    );
+    
     return {
       message: 'Challenge completed successfully',
       badge,
-      isCompleted: true
+      isCompleted: true,
+      workFileUrl
     };
   }
   

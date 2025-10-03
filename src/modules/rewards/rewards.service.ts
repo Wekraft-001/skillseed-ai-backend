@@ -123,7 +123,12 @@ export class RewardsService {
     return star;
   }
 
-  async completeChallenge(userId: string, challengeId: string): Promise<Badge> {
+  async completeChallenge(
+    userId: string, 
+    challengeId: string, 
+    completionNotes?: string,
+    workFileUrl?: string
+  ): Promise<Badge> {
     // Find the challenge
     const challenge = await this.challengeModel
       .findById(challengeId)
@@ -164,6 +169,8 @@ export class RewardsService {
       const completedChallenge = new this.completedChallengeModel({
         userId: userId,
         challengeId: challengeId,
+        completionNotes: completionNotes,
+        workFileUrl: workFileUrl,
         completedAt: new Date(),
       });
       await completedChallenge.save();

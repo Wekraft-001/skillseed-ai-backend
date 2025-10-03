@@ -23,7 +23,11 @@ export interface DashboardResponse extends DashboardData {
     userId: string,
     summary?: DashboardSummary,
     currentUser: User,
-    quizzes?: CareerQuiz[],
+    quizStatus?: {
+        hasQuiz: boolean;
+        isCompleted: boolean;
+        needsToTakeQuiz: boolean;
+    },
     stars?: any[], // Adding stars field to the response
     // data?: {
     //     success: true,

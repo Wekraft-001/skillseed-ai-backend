@@ -26,22 +26,19 @@ export class StudentDashboardService {
   }> {
     const completeUserData = await this.userModel.findById(student._id).exec();
 
-    // Get all quizzes, recommendations, and rewards for this user
-    const [quizzes, recommendations, badges, stars] = await Promise.all([
-      this.getAllQuizzesForUser(student),
-      this.getRecommendations(student),
+    // Get quiz status, recommendations, and rewards for this user - use completeUserData
+    const [quizStatus, recommendations, badges, stars] = await Promise.all([
+      this.getQuizStatusForUser(completeUserData || student),
+      this.getRecommendations(completeUserData || student),
       this.rewardsService.getBadgesForUser(student._id.toString()),
       this.rewardsService.getStarsForUser(student._id.toString())
     ]);
 
     // Calculate summary statistics
-    // Count completed quizzes based on quiz stars (more accurate than the quiz.completed flag)
-    const quizStars = stars.filter(star => star.contentType === 'quiz');
-    const uniqueCompletedQuizIds = new Set(quizStars.map(star => star.contentId));
-    
+    // Count completed quizzes based on actual quiz completion status
     const summary = {
       totalBadges: badges.length,
-      completedQuizzes: uniqueCompletedQuizIds.size,
+      completedQuizzes: quizStatus.isCompleted ? 1 : 0, // Use actual quiz completion status
       totalStars: stars.reduce((total, star) => total + (star.starValue || 0), 0)
     };
 
@@ -51,7 +48,11 @@ export class StudentDashboardService {
         message: 'Student dashboard data retrieved successfully',
         timestamp: new Date().toISOString(),
         userId: student._id.toString(),
-        quizzes: quizzes || [],
+        quizStatus: {
+          hasQuiz: quizStatus.hasQuiz,
+          isCompleted: quizStatus.isCompleted,
+          needsToTakeQuiz: !quizStatus.hasQuiz || !quizStatus.isCompleted
+        },
         educationalContents: recommendations || [],
         badges: badges || [],
         stars: stars || [], // Adding stars to the response
@@ -79,6 +80,77 @@ export class StudentDashboardService {
     return quiz;
   }
   
+  async getQuizStatusForUser(student: User): Promise<{
+    hasQuiz: boolean;
+    isCompleted: boolean;
+    quiz?: CareerQuiz;
+  }> {
+    let quiz: CareerQuiz | null = null;
+    
+    // Debug: Log student object details
+    this.logger.log(`🔍 Checking quiz status for student ${student._id}`);
+    this.logger.log(`📊 Student object keys: ${Object.keys(student).join(', ')}`);
+    this.logger.log(`🎯 initialQuizId: ${(student as any).initialQuizId}`);
+    this.logger.log(`📋 quizzes array: ${JSON.stringify((student as any).quizzes)}`);
+    
+    // First, try to find quiz using initialQuizId if it exists
+    if ((student as any).initialQuizId) {
+      this.logger.log(`🔎 Searching by initialQuizId: ${(student as any).initialQuizId}`);
+      quiz = await this.quizModel.findById((student as any).initialQuizId).exec();
+      this.logger.log(`📋 Quiz found by initialQuizId: ${!!quiz}`);
+      if (quiz) {
+        this.logger.log(`✅ Quiz details: ID=${quiz._id}, completed=${quiz.completed}, user=${quiz.user}`);
+      }
+    }
+    
+    // If no quiz found by initialQuizId, try to find by user ID
+    if (!quiz) {
+      this.logger.log(`🔎 Searching by user ID: ${student._id}`);
+      quiz = await this.quizModel.findOne({ 
+        user: student._id 
+      }).sort({ createdAt: -1 }).exec();
+      this.logger.log(`📋 Quiz found by user ID: ${!!quiz}`);
+      if (quiz) {
+        this.logger.log(`✅ Quiz details: ID=${quiz._id}, completed=${quiz.completed}, user=${quiz.user}`);
+      }
+    }
+    
+    // If still no quiz, try searching with quizzes array
+    if (!quiz && (student as any).quizzes && (student as any).quizzes.length > 0) {
+      const latestQuizId = (student as any).quizzes[(student as any).quizzes.length - 1];
+      this.logger.log(`🔎 Searching by quizzes array, latest quiz ID: ${latestQuizId}`);
+      quiz = await this.quizModel.findById(latestQuizId).exec();
+      this.logger.log(`📋 Quiz found by quizzes array: ${!!quiz}`);
+      if (quiz) {
+        this.logger.log(`✅ Quiz details: ID=${quiz._id}, completed=${quiz.completed}, user=${quiz.user}`);
+      }
+    }
+    
+    if (!quiz) {
+      this.logger.log(`❌ No career quiz found for student ${student._id}`);
+      
+      // Debug: Check all quizzes in database
+      const allQuizzes = await this.quizModel.find({}).limit(3).exec();
+      this.logger.log(`🗄️ Total quizzes in DB: ${allQuizzes.length}`);
+      allQuizzes.forEach((q, index) => {
+        this.logger.log(`📝 Quiz ${index + 1}: ID=${q._id}, user=${q.user}, completed=${q.completed}`);
+      });
+      
+      return {
+        hasQuiz: false,
+        isCompleted: false
+      };
+    }
+    
+    this.logger.log(`✅ Found career quiz ${quiz._id} for student ${student._id}, completed: ${quiz.completed}`);
+    
+    return {
+      hasQuiz: true,
+      isCompleted: quiz.completed,
+      quiz: quiz
+    };
+  }
+
   async getAllQuizzesForUser(student: User): Promise<CareerQuiz[]> {
     // Find all quizzes for this user
     const quizzes = await this.quizModel.find({ 

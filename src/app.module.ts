@@ -14,7 +14,8 @@ import {
   Mentor,
 } from './modules/schemas';
 import { LoggerModule } from './common/logger/logger.module';
-import { AiModule } from './modules/ai/ai.module';
+import { AiGatewayModule } from './modules/ai-gateway/ai-gateway.module';
+import { InternalModule } from './modules/internal/internal.module';
 import {
   DashboardModule,
   SchoolModule,
@@ -56,7 +57,8 @@ import { ReportsModule } from './modules/reports/reports.module';
       inject: [ConfigService],
     }),
     AuthModule,
-    AiModule,
+    AiGatewayModule,
+    InternalModule,
     SchoolModule,
     MentorModule,
     CommunityModule,

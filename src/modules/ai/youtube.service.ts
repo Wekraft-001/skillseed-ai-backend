@@ -65,6 +65,8 @@ export class YouTubeService {
         videoSyndicated: 'true', // Only embeddable videos
         videoEmbeddable: 'true',
         regionCode: 'US', // Focus on US educational content
+
+        // include African tailored content in the future
         relevanceLanguage: 'en'
       });
 
